@@ -4,4 +4,4 @@ Contador de calorias, proteínas, carboidratos e gorduras por refeição, com a 
 
 Acesse: https://anapaulaaraujorocha-ops.github.io/contador/
 
-Os dados ficam salvos no navegador de cada aparelho. Use "Exportar dados" e "Importar dados" (aba Dieta) para fazer backup ou levar os registros para outro aparelho.
+Entre com sua conta Google para salvar os registros na nuvem (Firebase) e usar o mesmo histórico no celular e no computador. Sem login, os dados ficam só no navegador do aparelho; nesse caso use "Exportar dados" e "Importar dados" (aba Dieta) para backup.
