@@ -73,7 +73,19 @@ h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:
 .tabs{display:flex;gap:4px;margin-left:12px}
 .tab{border:0;background:transparent;padding:8px 12px;border-radius:10px;color:var(--muted);font-weight:700}
 .tab[aria-current="page"]{background:var(--surface-2);color:var(--ink)}
-.sync{margin-left:auto;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.sync{margin-left:auto;font-size:12.5px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;border:1px solid transparent;background:none;padding:4px 8px;border-radius:99px}
+.sync:hover{border-color:var(--line);background:var(--surface)}
+.sync img{width:22px;height:22px;border-radius:50%}
+.login{position:fixed;inset:0;z-index:70;background:var(--bg);display:grid;place-items:center;padding:24px 16px;overflow-y:auto}
+.login-card{max-width:380px;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+.login-emo{font-size:40px;letter-spacing:6px}
+.login h1{font-size:30px}
+.login p{margin:0;color:var(--muted)}
+.btn.google{width:100%;padding:13px 16px;font-size:16px;background:var(--surface);gap:10px;margin-top:10px}
+.login-note{font-size:13.5px}
+.login-err{color:var(--over)!important;font-size:14px}
+.acct{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.acct img{width:44px;height:44px;border-radius:50%}
 .sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
 .sync.on i{background:var(--ok)}
 .sync.local i{background:var(--carb)}
@@ -254,14 +266,28 @@ main{max-width:1080px;margin:0 auto;padding:16px 16px 110px}
   <div class="top-in">
     <div class="brand"><span class="brand-mark" aria-hidden="true">🥗</span>Contador</div>
     <nav class="tabs" id="tabs" aria-label="Seções"></nav>
-    <span class="sync" id="sync"><i></i><span>Conectando…</span></span>
+    <button class="sync" id="sync" data-act="account" type="button"><img id="syncAvatar" alt="" hidden><i></i><span>Conectando…</span></button>
   </div>
 </header>
 <main id="main"></main>
 <nav class="bottom" id="bottomnav" aria-label="Seções"></nav>
+<div class="login" id="login" hidden>
+  <div class="login-card">
+    <div class="login-emo" aria-hidden="true">🥗🍎🍗</div>
+    <h1>Contador</h1>
+    <p>Conte calorias, proteínas, carboidratos e gorduras de cada refeição e compare com a sua dieta.</p>
+    <button class="btn google" data-act="login" type="button"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Entrar com Google</button>
+    <p class="login-note">Seus registros ficam salvos na sua conta e aparecem no celular e no computador.</p>
+    <p class="login-err" id="loginErr" hidden></p>
+    <button class="btn ghost small" data-act="guest" type="button">Usar sem login (salva só neste aparelho)</button>
+  </div>
+</div>
 <div class="sheet-wrap" id="sheetWrap" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast" hidden></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 (function(){
 "use strict";
@@ -420,7 +446,8 @@ const fmtDate=(k,opts)=>parseKey(k).toLocaleDateString("pt-BR",opts||{weekday:"l
 const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
 
 /* ---------- state & storage ---------- */
-const LS_KEY="contador.v1";
+const ANON_KEY="contador.v1";
+let LS_KEY=ANON_KEY;
 function defaultSettings(){return {goals:{kcal:null,p:null,c:null,f:null},mealGoals:{},foods:[]}}
 let S={settings:defaultSettings(),days:{}};
 let ui={view:"hoje",date:todayKey(),range:7};
@@ -428,7 +455,6 @@ try{const v=localStorage.getItem("contador.view");if(v)ui.view=v}catch(e){}
 
 function lsLoad(){try{const r=localStorage.getItem(LS_KEY);if(r){const o=JSON.parse(r);S.settings=Object.assign(defaultSettings(),o.settings||{});S.days=o.days||{}}}catch(e){}}
 function lsSave(){try{localStorage.setItem(LS_KEY,JSON.stringify(S))}catch(e){}}
-lsLoad();
 
 let col=null, syncMode="connecting";
 const writers={};
@@ -464,49 +490,111 @@ function setSync(m){
   const el=$("#sync");
   el.className="sync"+(m==="on"?" on":m==="local"?" local":"");
   el.querySelector("span").textContent=m==="on"?"Sincronizado":m==="local"?"Salvo neste aparelho":"Conectando…";
+  const av=$("#syncAvatar");if(currentUser&&currentUser.photoURL){av.src=currentUser.photoURL;av.hidden=false}else av.hidden=true;
   el.title=m==="on"?"Seus dados ficam na sua conta e aparecem no celular e no computador.":m==="local"?"Sem conexão com a sua conta: os dados ficam só neste navegador.":"";
 }
 
-async function initSync(){
-  if(STATIC){setSync("local");try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}return}
-  let tries=0;
-  while(!(window.claude&&window.claude.use)&&tries<15){await new Promise(r=>setTimeout(r,200));tries++}
-  if(!(window.claude&&window.claude.use)){setSync("local");render();return}
-  try{
-    const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
-    const id=user?await user.id():null;
-    if(!db||!id){setSync("local");render();return}
-    col=db.collection("data/users/"+id);
-    let ready=false;
-    col.onSnapshot(snap=>{
-      if(!ready){
-        if(snap.metadata.fromCache) return;
-        ready=true;
-        if(snap.empty){
-          setSync("on");
-          if(hasLocalData()){ // envia o que já estava neste aparelho
-            Object.keys(S.days).forEach(k=>{if(S.days[k].items&&S.days[k].items.length)queueWrite("d-"+k,dayDoc(k))});
-            queueWrite("settings",Object.assign({type:"settings"},S.settings));
-          }
-          render();return;
+// ---- Login com Google + Firestore (Firebase) ----
+// Configuração pública do projeto Firebase (não é senha). Vazio = app funciona só neste aparelho.
+const FIREBASE_CONFIG=null;
+let currentUser=null, unsubSnap=null, fbReady=false;
+function guestMode(){try{return localStorage.getItem("contador.guest")==="1"}catch(e){return false}}
+function showLogin(msg){$("#login").hidden=false;const e=$("#loginErr");e.hidden=!msg;e.textContent=msg||""}
+function hideLogin(){$("#login").hidden=true}
+function resetState(){S={settings:defaultSettings(),days:{}}}
+function startLocal(){
+  if(unsubSnap){unsubSnap();unsubSnap=null}
+  col=null;currentUser=null;LS_KEY=ANON_KEY;resetState();lsLoad();setSync("local");
+  try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+  render();
+}
+function startUser(user){
+  currentUser=user;
+  if(unsubSnap){unsubSnap();unsubSnap=null}
+  LS_KEY="contador.v1.u."+user.uid;resetState();lsLoad();
+  // primeira vez nesta conta neste aparelho: traz o que estava salvo sem login
+  let migrating=false;
+  if(!hasLocalData()){try{const r=localStorage.getItem(ANON_KEY);if(r){const o=JSON.parse(r);S.settings=Object.assign(defaultSettings(),o.settings||{});S.days=o.days||{};migrating=hasLocalData()}}catch(e){}}
+  try{localStorage.setItem("contador.lastUid",user.uid)}catch(e){}
+  hideLogin();setSync("connecting");render();
+  col=firebase.firestore().collection("users").doc(user.uid).collection("dados");
+  let ready=false;
+  unsubSnap=col.onSnapshot({includeMetadataChanges:false},snap=>{
+    if(!ready){
+      if(snap.metadata.fromCache&&snap.empty) return;
+      ready=true;
+      if(snap.empty){
+        if(hasLocalData()){
+          Object.keys(S.days).forEach(k=>{if(S.days[k].items&&S.days[k].items.length)queueWrite("d-"+k,dayDoc(k))});
+          queueWrite("settings",Object.assign({type:"settings"},S.settings));
+          if(migrating){try{localStorage.removeItem(ANON_KEY)}catch(e){}toast("Seus registros deste aparelho foram para a sua conta")}
         }
+        lsSave();setSync("on");render();return;
       }
-      const days={};let settings=null;
-      snap.docs.forEach(doc=>{
-        const d=doc.data(); if(!d) return;
-        if(doc.id==="settings") settings=d;
-        else if(d.type==="day"&&d.date) days[d.date]={items:Array.isArray(d.items)?d.items:[]};
-      });
-      // mantém versões locais ainda não enviadas
-      Object.keys(writers).forEach(wid=>{
-        if(!writers[wid].next) return;
-        if(wid==="settings") settings=S.settings;
-        else{const k=wid.slice(2); if(S.days[k]) days[k]=S.days[k];}
-      });
-      if(settings){const st=Object.assign(defaultSettings(),settings);delete st.type;S.settings=st}
-      S.days=days; lsSave(); setSync("on"); render();
-    },err=>{col=null;setSync("local");toast("A sincronização parou. Os dados continuam salvos neste aparelho.");render()});
-  }catch(e){setSync("local");render()}
+    }
+    const days={};let settings=null;
+    snap.docs.forEach(doc=>{
+      const d=doc.data(); if(!d) return;
+      if(doc.id==="settings") settings=d;
+      else if(d.type==="day"&&d.date) days[d.date]={items:Array.isArray(d.items)?d.items:[]};
+    });
+    Object.keys(writers).forEach(wid=>{
+      if(!writers[wid].next) return;
+      if(wid==="settings") settings=S.settings;
+      else{const k=wid.slice(2); if(S.days[k]) days[k]=S.days[k];}
+    });
+    if(settings){const st=Object.assign(defaultSettings(),settings);delete st.type;S.settings=st}
+    S.days=days; lsSave(); setSync(snap.metadata.fromCache?"connecting":"on"); render();
+  },err=>{unsubSnap=null;col=null;setSync("local");toast("Não foi possível acessar sua conta agora. Os dados continuam salvos neste aparelho.");render()});
+}
+async function initSync(){
+  if(!FIREBASE_CONFIG){startLocal();return}
+  if(!(window.firebase&&firebase.initializeApp)){
+    // sem internet para carregar o login: usa a última conta salva neste aparelho
+    let last=null;try{last=localStorage.getItem("contador.lastUid")}catch(e){}
+    if(last){LS_KEY="contador.v1.u."+last;resetState();lsLoad();setSync("local");render();toast("Sem conexão: mostrando os dados salvos neste aparelho")}
+    else startLocal();
+    return;
+  }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  try{firebase.firestore().enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}
+  fbReady=true;
+  firebase.auth().getRedirectResult().catch(e=>showLogin(loginError(e)));
+  firebase.auth().onAuthStateChanged(user=>{
+    if(user){try{localStorage.removeItem("contador.guest")}catch(e){}startUser(user)}
+    else if(guestMode()){hideLogin();startLocal()}
+    else{if(unsubSnap){unsubSnap();unsubSnap=null}col=null;currentUser=null;resetState();render();showLogin()}
+  });
+}
+function loginError(e){
+  const c=e&&e.code||"";
+  if(c==="auth/popup-closed-by-user"||c==="auth/cancelled-popup-request")return "";
+  if(c==="auth/unauthorized-domain")return "Este endereço ainda não está liberado no Firebase (Domínios autorizados).";
+  if(c==="auth/operation-not-allowed")return "O login com Google ainda não foi ativado no Firebase.";
+  if(c==="auth/network-request-failed")return "Sem conexão com a internet. Tente de novo.";
+  return "Não foi possível entrar agora. Tente de novo.";
+}
+function doLogin(){
+  if(!fbReady){showLogin("Não foi possível carregar o login. Verifique a internet e recarregue a página.");return}
+  const prov=new firebase.auth.GoogleAuthProvider();prov.setCustomParameters({prompt:"select_account"});
+  firebase.auth().signInWithPopup(prov).catch(e=>{
+    if(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment")return firebase.auth().signInWithRedirect(prov);
+    const m=loginError(e);if(m){if($("#login").hidden){toast(m)}else showLogin(m)}
+  });
+}
+function openAccount(){
+  sh={mode:"account"};$("#sheetWrap").hidden=false;document.body.style.overflow="hidden";
+  let body;
+  if(currentUser){
+    body=`<div class="acct">${currentUser.photoURL?`<img src="${esc(currentUser.photoURL)}" alt="">`:""}<div><div style="font-weight:700">${esc(currentUser.displayName||"Sua conta")}</div><div class="muted" style="font-size:13.5px">${esc(currentUser.email||"")}</div></div></div>
+      <p class="muted" style="margin:0 0 14px">${syncMode==="on"?"Seus registros estão salvos na sua conta e aparecem em qualquer aparelho em que você entrar.":"Conectando à sua conta… O que você registrar agora é enviado assim que a conexão voltar."}</p>
+      <button class="btn danger" style="width:100%" data-act="logout">Sair da conta</button>`;
+  } else {
+    body=`<p style="margin:0 0 14px">Você está usando o app sem login. Os registros ficam só neste navegador.</p>
+      ${FIREBASE_CONFIG?`<button class="btn primary" style="width:100%" data-act="loginFromGuest">Entrar com Google para salvar na nuvem</button>
+      <p class="muted" style="font-size:13px;margin:10px 0 0">Ao entrar, o que já está registrado aqui vai para a sua conta.</p>`:`<p class="muted" style="font-size:13.5px;margin:0">Use "Exportar dados" na aba Dieta para fazer backup.</p>`}`;
+  }
+  $("#sheet").innerHTML=`<div class="sheet-head"><span class="meal-emo" aria-hidden="true">👤</span><h2>Sua conta</h2><button class="icon-btn" data-act="shClose" aria-label="Fechar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="sheet-body">${body}</div>`;
 }
 
 /* ---------- calculations ---------- */
@@ -847,6 +935,11 @@ document.addEventListener("click",e=>{
       const blob=new Blob([JSON.stringify(data)],{type:"application/json"});const url=URL.createObjectURL(blob);
       const ln=document.createElement("a");ln.href=url;ln.download="contador-backup-"+todayKey()+".json";document.body.appendChild(ln);ln.click();ln.remove();
       setTimeout(()=>URL.revokeObjectURL(url),4000);toast("Backup exportado");break}
+    case "account":openAccount();break;
+    case "login":doLogin();break;
+    case "loginFromGuest":closeSheet();try{localStorage.removeItem("contador.guest")}catch(e){}doLogin();break;
+    case "guest":try{localStorage.setItem("contador.guest","1")}catch(e){}hideLogin();startLocal();break;
+    case "logout":closeSheet();if(unsubSnap){unsubSnap();unsubSnap=null}col=null;firebase.auth().signOut();toast("Você saiu da conta");break;
     case "shClose":closeSheet();break;
     case "shTab":if(sh.tab==="manual")readMan();sh.tab=a.dataset.t;drawSheet();focusFirst();break;
     case "toManual":sh.man.name=sh.q;sh.tab="manual";drawSheet();break;
