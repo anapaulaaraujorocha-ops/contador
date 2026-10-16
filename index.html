@@ -496,7 +496,14 @@ function setSync(m){
 
 // ---- Login com Google + Firestore (Firebase) ----
 // Configuração pública do projeto Firebase (não é senha). Vazio = app funciona só neste aparelho.
-const FIREBASE_CONFIG=null;
+const FIREBASE_CONFIG={
+  apiKey:"AIzaSyBw49br7mfRamVe6dGSJV0tnRVMJnEKeb0",
+  authDomain:"contador-76398.firebaseapp.com",
+  projectId:"contador-76398",
+  storageBucket:"contador-76398.firebasestorage.app",
+  messagingSenderId:"544669855468",
+  appId:"1:544669855468:web:680f890a29793c2958ffc9"
+};
 let currentUser=null, unsubSnap=null, fbReady=false;
 function guestMode(){try{return localStorage.getItem("contador.guest")==="1"}catch(e){return false}}
 function showLogin(msg){$("#login").hidden=false;const e=$("#loginErr");e.hidden=!msg;e.textContent=msg||""}
