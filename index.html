@@ -1051,7 +1051,7 @@ function aiErrMsg(e){
   if(/quota|429|RESOURCE_EXHAUSTED/i.test(m))return "O limite gratuito de uso da IA acabou por hoje. Tente amanhã ou use a aba Buscar.";
   return "Não consegui calcular agora ("+m.slice(0,140)+"). Tente de novo.";
 }
-function aiKeyForm(){return `<div style="display:flex;gap:8px;margin-top:8px"><input class="input ia-key" type="password" aria-label="Chave do Gemini" autocomplete="off" placeholder="Cole a chave aqui (começa com AIza)" value="${esc(S.settings.aiKey||"")}"><button class="btn primary" data-act="iaKeySave">Salvar</button></div><p class="hint">A chave fica salva só na sua conta${currentUser?"":" e neste aparelho"}.</p>`}
+function aiKeyForm(){return `<div style="display:flex;gap:8px;margin-top:8px"><input class="input ia-key" type="password" aria-label="Chave do Gemini" autocomplete="off" placeholder="Cole a chave aqui" value="${esc(S.settings.aiKey||"")}"><button class="btn primary" data-act="iaKeySave">Salvar</button></div><p class="hint">A chave fica salva só na sua conta${currentUser?"":" e neste aparelho"}.</p>`}
 function iaBody(){
   const ia=sh.ia;
   return `<div class="field"><label for="ia-text">O que você comeu?</label><textarea class="input" id="ia-text" rows="3" placeholder="ex.: 1 filé de tilápia empanada e frita, 4 colheres de arroz, 1 concha de feijão e salada">${esc(ia.text)}</textarea></div>
