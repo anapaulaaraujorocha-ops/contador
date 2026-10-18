@@ -585,6 +585,17 @@ const FIREBASE_CONFIG={
   appId:"1:544669855468:web:680f890a29793c2958ffc9"
 };
 let currentUser=null, unsubSnap=null, fbReady=false;
+// chave do Gemini do app: quem administra salva uma vez em config/ia e vale para todos os usuários logados
+let appAiKey="", appKeyLoaded=false, appKeyTried=false;
+function loadAppKey(){
+  appAiKey="";appKeyLoaded=false;appKeyTried=false;
+  try{firebase.firestore().collection("config").doc("ia").get().then(d=>{appAiKey=(d.exists&&(d.data()||{}).key)||"";appKeyLoaded=true;maybePublishKey();if(sh&&sh.tab==="ia")drawSheet()}).catch(()=>{appKeyLoaded=true})}catch(e){}
+}
+function publishAppKey(k){
+  if(!currentUser||!k)return Promise.resolve(false);
+  return firebase.firestore().collection("config").doc("ia").set({key:k,por:currentUser.email||"",em:Date.now()}).then(()=>{appAiKey=k;return true}).catch(()=>false);
+}
+function maybePublishKey(){if(appKeyLoaded&&!appAiKey&&!appKeyTried&&S.settings.aiKey){appKeyTried=true;publishAppKey(S.settings.aiKey.trim()).then(ok=>{if(ok)toast("Chave da IA liberada para todos os usuários")})}}
 function guestMode(){try{return localStorage.getItem("contador.guest")==="1"}catch(e){return false}}
 function showLogin(msg){$("#login").hidden=false;const e=$("#loginErr");e.hidden=!msg;e.textContent=msg||""}
 function hideLogin(){$("#login").hidden=true}
@@ -604,6 +615,7 @@ function startUser(user){
   if(!hasLocalData()){try{const r=localStorage.getItem(ANON_KEY);if(r){const o=JSON.parse(r);S.settings=Object.assign(defaultSettings(),o.settings||{});S.days=o.days||{};migrating=hasLocalData()}}catch(e){}}
   try{localStorage.setItem("contador.lastUid",user.uid)}catch(e){}
   hideLogin();setSync("connecting");render();
+  loadAppKey();
   col=firebase.firestore().collection("users").doc(user.uid).collection("dados");
   let ready=false;
   unsubSnap=col.onSnapshot({includeMetadataChanges:false},snap=>{
@@ -631,7 +643,7 @@ function startUser(user){
       else{const k=wid.slice(2); if(S.days[k]) days[k]=S.days[k];}
     });
     if(settings){const st=Object.assign(defaultSettings(),settings);delete st.type;S.settings=st}
-    S.days=days; lsSave(); setSync(snap.metadata.fromCache?"connecting":"on"); render();
+    S.days=days; lsSave(); setSync(snap.metadata.fromCache?"connecting":"on"); render(); maybePublishKey();
   },err=>{unsubSnap=null;col=null;setSync("local");toast("Não foi possível acessar sua conta agora. Os dados continuam salvos neste aparelho.");render()});
 }
 async function initSync(){
@@ -1031,7 +1043,7 @@ async function aiAskKey(key,parts){
   throw last;
 }
 async function aiAsk(parts){
-  const key=(S.settings.aiKey||"").trim();
+  const key=((S.settings.aiKey||"").trim())||appAiKey;
   if(key) return aiAskKey(key,parts);
   const {I,ai}=await aiSdk(); let last;
   for(const m of (aiModelName?[aiModelName]:AI_MODELS)){
@@ -1054,8 +1066,8 @@ function aiErrMsg(e){
 function aiKeyForm(){return `<div style="display:flex;gap:8px;margin-top:8px"><input class="input ia-key" type="password" aria-label="Chave do Gemini" autocomplete="off" placeholder="Cole a chave aqui" value="${esc(S.settings.aiKey||"")}"><button class="btn primary" data-act="iaKeySave">Salvar</button></div><p class="hint">A chave fica salva só na sua conta${currentUser?"":" e neste aparelho"}.</p>`}
 function iaBody(){
   const ia=sh.ia;
-  const keyBox=S.settings.aiKey?"":`<div class="ia-err" style="margin:0 0 12px"><b>1º passo: ligue a IA.</b> Cole aqui embaixo a chave do Gemini que você copiou e toque em Salvar.${aiKeyForm()}</div>`;
-  return `${keyBox}<div class="field"><label for="ia-text">${S.settings.aiKey?"":"2º passo: "}O que você comeu?</label><textarea class="input" id="ia-text" rows="3" placeholder="ex.: 1 filé de tilápia empanada e frita, 4 colheres de arroz, 1 concha de feijão e salada">${esc(ia.text)}</textarea></div>
+  const keyBox=(S.settings.aiKey||appAiKey)?"":`<div class="ia-err" style="margin:0 0 12px"><b>1º passo: ligue a IA.</b> Cole aqui embaixo a chave do Gemini que você copiou e toque em Salvar.${aiKeyForm()}</div>`;
+  return `${keyBox}<div class="field"><label for="ia-text">${(S.settings.aiKey||appAiKey)?"":"2º passo: "}O que você comeu?</label><textarea class="input" id="ia-text" rows="3" placeholder="ex.: 1 filé de tilápia empanada e frita, 4 colheres de arroz, 1 concha de feijão e salada">${esc(ia.text)}</textarea></div>
     ${ia.img?`<div class="ia-photo"><img src="${ia.img}" alt="Foto do prato"><button data-act="iaNoPhoto">Remover foto</button></div>`:""}
     <div class="ia-actions"><label class="btn" for="ia-file">📷 ${ia.img?"Trocar foto":"Foto do prato"}</label><input type="file" id="ia-file" accept="image/*" hidden><button class="btn primary" data-act="iaRun" ${ia.loading?"disabled":""}>✨ Calcular</button></div>
     ${S.settings.aiKey?`<details style="margin:4px 0"><summary class="muted" style="font-size:12.5px">⚙️ Chave do Gemini (salva)</summary>${aiKeyForm()}</details>`:""}
@@ -1086,7 +1098,7 @@ function iaUpdateRow(i){
 async function iaRun(){
   const ia=sh.ia,t=$("#ia-text");if(t)ia.text=t.value;
   const kt=ia.text.trim();
-  if(/^(AQ\.|AIza)[\w.-]{20,}$/.test(kt)){S.settings.aiKey=kt;aiModelName=null;persistSettings();ia.text="";drawSheet();toast("Chave do Gemini salva! Agora escreva o que você comeu.");return}
+  if(/^(AQ\.|AIza)[\w.-]{20,}$/.test(kt)){S.settings.aiKey=kt;aiModelName=null;persistSettings();publishAppKey(kt);ia.text="";drawSheet();toast("Chave do Gemini salva! Agora escreva o que você comeu.");return}
   if(!ia.text.trim()&&!ia.img){if(t){t.focus();t.style.borderColor="var(--over)"}return}
   const me=sh;ia.loading=true;ia.err=null;drawSheet();
   const parts=[{text:AI_PROMPT+"\n\nRefeição: "+MEAL_NAME[sh.meal]+"\nDescrição da pessoa: "+(ia.text.trim()||"(sem descrição, use a foto)")}];
@@ -1298,7 +1310,7 @@ document.addEventListener("click",e=>{
     case "shBack":sh.food=null;drawSheet();focusFirst();break;
     case "offSearch":offSearch();break;
     case "iaRun":iaRun();break;
-    case "iaKeySave":{const v=(a.parentElement.querySelector("input").value||"").trim();S.settings.aiKey=v;aiModelName=null;persistSettings();toast(v?"Chave salva":"Chave removida");if(v&&(sh.ia.text||sh.ia.img))iaRun();else drawSheet();break}
+    case "iaKeySave":{const v=(a.parentElement.querySelector("input").value||"").trim();S.settings.aiKey=v;aiModelName=null;persistSettings();if(v)publishAppKey(v).then(ok=>toast(ok?"Chave salva e liberada para todos os usuários":"Chave salva na sua conta"));else toast("Chave removida");if(v&&(sh.ia.text||sh.ia.img))iaRun();else drawSheet();break}
     case "iaNoPhoto":sh.ia.img=null;drawSheet();break;
     case "prPick":{const f=allFoods().find(x=>x.id===a.dataset.id);if(!f)break;sh.prep.base=f;drawSheet();break}
     case "prBack":sh.prep.base=null;drawSheet();focusFirst();break;
