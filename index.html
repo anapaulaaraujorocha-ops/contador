@@ -1047,8 +1047,8 @@ function iaItem(r){const g=Math.max(1,+r.gramas||100),k=100/g;return {name:Strin
 function drawIaOut(){
   const el=$("#ia-out");if(!el)return;const ia=sh.ia;
   if(ia.loading){el.innerHTML=`<p class="muted"><span class="spin"></span>Analisando o prato…</p>`;return}
-  if(ia.err==="setup"){el.innerHTML=`<div class="ia-err"><b>A IA ainda não está ligada no Firebase.</b> É um passo único, feito por quem administra o app:<ol><li>Abra console.firebase.google.com e entre no projeto <b>contador-76398</b>.</li><li>No menu, abra <b>AI Logic</b> (em "Criar" ou "Build") e toque em <b>Começar</b>.</li><li>Escolha <b>Gemini Developer API</b> (gratuita) e confirme.</li></ol>Depois disso, é só tocar em Calcular de novo.</div>`;return}
-  if(ia.err){el.innerHTML=`<div class="ia-err">${esc(ia.err)}</div>`;return}
+  if(ia.err==="setup"){el.innerHTML=`<div class="ia-err"><b>A IA ainda não está ligada no Firebase.</b> É um passo único, feito por quem administra o app:<ol><li>Abra console.firebase.google.com e entre no projeto <b>contador-76398</b>.</li><li>No menu, abra <b>AI Logic</b> (em "Criar" ou "Build") e toque em <b>Começar</b>.</li><li>Escolha <b>Gemini Developer API</b> (gratuita) e confirme.</li></ol>Depois disso, é só tocar em Calcular de novo. Se você acabou de ativar, espere uns 5 minutos.<details style="margin-top:8px"><summary class="muted" style="font-size:12.5px">Detalhes do erro</summary><code style="font-size:11.5px;word-break:break-all">${esc(ia.errRaw||"")}</code></details></div>`;return}
+  if(ia.err){el.innerHTML=`<div class="ia-err">${esc(ia.err)}<details style="margin-top:8px"><summary class="muted" style="font-size:12.5px">Detalhes do erro</summary><code style="font-size:11.5px;word-break:break-all">${esc(ia.errRaw||"")}</code></details></div>`;return}
   if(!ia.res){el.innerHTML="";return}
   if(!ia.res.length){el.innerHTML=`<div class="ia-err">${esc(ia.note||"Não encontrei alimentos. Descreva o prato com mais detalhes.")}</div>`;return}
   const tot={kcal:0,p:0,c:0,f:0};
@@ -1070,7 +1070,7 @@ async function iaRun(){
   const parts=[{text:AI_PROMPT+"\n\nRefeição: "+MEAL_NAME[sh.meal]+"\nDescrição da pessoa: "+(ia.text.trim()||"(sem descrição, use a foto)")}];
   if(ia.img)parts.push({inlineData:{mimeType:"image/jpeg",data:ia.img.split(",")[1]}});
   try{const r=await aiAsk(parts);ia.res=(r.itens||[]).map(iaItem);ia.note=r.observacao||""}
-  catch(e){console.warn(e);ia.err=aiErrMsg(e)}
+  catch(e){console.warn(e);ia.err=aiErrMsg(e);ia.errRaw=String(e&&(e.message||e)).slice(0,400)}
   ia.loading=false;if(sh===me&&sh.tab==="ia")drawSheet();
 }
 function iaPhoto(file){
