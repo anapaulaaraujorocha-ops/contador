@@ -1063,7 +1063,7 @@ function aiErrMsg(e){
   if(/quota|429|RESOURCE_EXHAUSTED/i.test(m))return "O limite gratuito de uso da IA acabou por hoje. Tente amanhã ou use a aba Buscar.";
   return "Não consegui calcular agora ("+m.slice(0,140)+"). Tente de novo.";
 }
-function aiKeyForm(){return `<div style="display:flex;gap:8px;margin-top:8px"><input class="input ia-key" type="password" aria-label="Chave do Gemini" autocomplete="off" placeholder="Cole a chave aqui" value="${esc(S.settings.aiKey||"")}"><button class="btn primary" data-act="iaKeySave">Salvar</button></div><p class="hint">A chave fica salva só na sua conta${currentUser?"":" e neste aparelho"}.</p>`}
+function aiKeyForm(){return `<div style="display:flex;gap:8px;margin-top:8px"><input class="input ia-key" type="password" aria-label="Chave do Gemini" autocomplete="off" placeholder="Cole a chave aqui" value="${esc(S.settings.aiKey||"")}"><button class="btn primary" data-act="iaKeySave">Salvar</button></div><p class="hint">${appAiKey&&appAiKey===(S.settings.aiKey||"").trim()?"✅ Chave liberada para todos os usuários logados.":currentUser?"A chave fica salva na sua conta.":"A chave fica salva só neste aparelho."}</p>`}
 function iaBody(){
   const ia=sh.ia;
   const keyBox=(S.settings.aiKey||appAiKey)?"":`<div class="ia-err" style="margin:0 0 12px"><b>1º passo: ligue a IA.</b> Cole aqui embaixo a chave do Gemini que você copiou e toque em Salvar.${aiKeyForm()}</div>`;
