@@ -1023,13 +1023,13 @@ async function aiAsk(parts){
       const model=I.getGenerativeModel(ai,{model:m,generationConfig:{responseMimeType:"application/json",responseSchema:AI_SCHEMA,temperature:0.2}});
       const r=await model.generateContent(parts); aiModelName=m;
       return JSON.parse(r.response.text());
-    }catch(e){last=e;if(!/not.?found|404|is not supported|unsupported model|invalid model/i.test(String(e&&e.message||e)))throw e}
+    }catch(e){last=e;const em=String(e&&e.message||e);if(/genai config/i.test(em)||!/\b404\b|model[^:]*(is )?not found|is not supported|unsupported model|invalid model/i.test(em))throw e}
   }
   throw last;
 }
 function aiErrMsg(e){
   const m=String(e&&e.message||e);
-  if(/api.?not.?enabled|has not been used|is disabled|SERVICE_DISABLED|firebasevertexai|PERMISSION_DENIED|403|API key not valid|billing/i.test(m))return "setup";
+  if(/genai config|api.?not.?enabled|has not been used|is disabled|SERVICE_DISABLED|firebasevertexai|PERMISSION_DENIED|403|API key not valid|billing/i.test(m))return "setup";
   if(/Failed to fetch|NetworkError|network|import|dynamically imported/i.test(m))return "Sem conexão com a internet agora. Tente de novo em instantes.";
   if(/quota|429|RESOURCE_EXHAUSTED/i.test(m))return "O limite gratuito de uso da IA acabou por hoje. Tente amanhã ou use a aba Buscar.";
   return "Não consegui calcular agora ("+m.slice(0,140)+"). Tente de novo.";
