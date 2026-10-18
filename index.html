@@ -1054,10 +1054,11 @@ function aiErrMsg(e){
 function aiKeyForm(){return `<div style="display:flex;gap:8px;margin-top:8px"><input class="input ia-key" type="password" aria-label="Chave do Gemini" autocomplete="off" placeholder="Cole a chave aqui" value="${esc(S.settings.aiKey||"")}"><button class="btn primary" data-act="iaKeySave">Salvar</button></div><p class="hint">A chave fica salva só na sua conta${currentUser?"":" e neste aparelho"}.</p>`}
 function iaBody(){
   const ia=sh.ia;
-  return `<div class="field"><label for="ia-text">O que você comeu?</label><textarea class="input" id="ia-text" rows="3" placeholder="ex.: 1 filé de tilápia empanada e frita, 4 colheres de arroz, 1 concha de feijão e salada">${esc(ia.text)}</textarea></div>
+  const keyBox=S.settings.aiKey?"":`<div class="ia-err" style="margin:0 0 12px"><b>1º passo: ligue a IA.</b> Cole aqui embaixo a chave do Gemini que você copiou e toque em Salvar.${aiKeyForm()}</div>`;
+  return `${keyBox}<div class="field"><label for="ia-text">${S.settings.aiKey?"":"2º passo: "}O que você comeu?</label><textarea class="input" id="ia-text" rows="3" placeholder="ex.: 1 filé de tilápia empanada e frita, 4 colheres de arroz, 1 concha de feijão e salada">${esc(ia.text)}</textarea></div>
     ${ia.img?`<div class="ia-photo"><img src="${ia.img}" alt="Foto do prato"><button data-act="iaNoPhoto">Remover foto</button></div>`:""}
     <div class="ia-actions"><label class="btn" for="ia-file">📷 ${ia.img?"Trocar foto":"Foto do prato"}</label><input type="file" id="ia-file" accept="image/*" hidden><button class="btn primary" data-act="iaRun" ${ia.loading?"disabled":""}>✨ Calcular</button></div>
-    <details style="margin:4px 0"><summary class="muted" style="font-size:12.5px">⚙️ Chave do Gemini${S.settings.aiKey?" (salva)":""}</summary>${aiKeyForm()}</details>
+    ${S.settings.aiKey?`<details style="margin:4px 0"><summary class="muted" style="font-size:12.5px">⚙️ Chave do Gemini (salva)</summary>${aiKeyForm()}</details>`:""}
     <p class="hint">Escreva, tire uma foto ou os dois. A IA identifica cada alimento, estima o peso e calcula. Você confere e ajusta antes de adicionar.</p>
     <div id="ia-out"></div>`;
 }
@@ -1084,6 +1085,8 @@ function iaUpdateRow(i){
 }
 async function iaRun(){
   const ia=sh.ia,t=$("#ia-text");if(t)ia.text=t.value;
+  const kt=ia.text.trim();
+  if(/^(AQ\.|AIza)[\w.-]{20,}$/.test(kt)){S.settings.aiKey=kt;aiModelName=null;persistSettings();ia.text="";drawSheet();toast("Chave do Gemini salva! Agora escreva o que você comeu.");return}
   if(!ia.text.trim()&&!ia.img){if(t){t.focus();t.style.borderColor="var(--over)"}return}
   const me=sh;ia.loading=true;ia.err=null;drawSheet();
   const parts=[{text:AI_PROMPT+"\n\nRefeição: "+MEAL_NAME[sh.meal]+"\nDescrição da pessoa: "+(ia.text.trim()||"(sem descrição, use a foto)")}];
