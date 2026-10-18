@@ -1016,7 +1016,23 @@ function aiSdk(){
     .catch(e=>{aiSdkP=null;throw e});
   return aiSdkP;
 }
+// caminho direto pela API do Gemini (chave do Google AI Studio salva na conta da pessoa)
+const upSchema=o=>Array.isArray(o)?o.map(upSchema):(o&&typeof o==="object"?Object.fromEntries(Object.entries(o).map(([k,v])=>[k,k==="type"?String(v).toUpperCase():upSchema(v)])):o);
+async function aiAskKey(key,parts){
+  let last;
+  for(const m of (aiModelName?[aiModelName]:AI_MODELS)){
+    const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},
+      body:JSON.stringify({contents:[{role:"user",parts}],generationConfig:{responseMimeType:"application/json",responseSchema:upSchema(AI_SCHEMA),temperature:0.2}})});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok){const t=(((j.candidates||[])[0]||{}).content||{}).parts;aiModelName=m;return JSON.parse((t||[]).map(x=>x.text||"").join(""))}
+    last=new Error("["+r.status+" "+((j.error||{}).status||"")+"] "+((j.error||{}).message||"erro"));
+    if(r.status!==404)throw last;
+  }
+  throw last;
+}
 async function aiAsk(parts){
+  const key=(S.settings.aiKey||"").trim();
+  if(key) return aiAskKey(key,parts);
   const {I,ai}=await aiSdk(); let last;
   for(const m of (aiModelName?[aiModelName]:AI_MODELS)){
     try{
@@ -1029,16 +1045,19 @@ async function aiAsk(parts){
 }
 function aiErrMsg(e){
   const m=String(e&&e.message||e);
+  if(/API key not valid|API_KEY_INVALID/i.test(m)&&(S.settings.aiKey||""))return "A chave do Gemini salva no app não é válida. Confira se copiou a chave inteira.";
   if(/genai config|api.?not.?enabled|has not been used|is disabled|SERVICE_DISABLED|firebasevertexai|PERMISSION_DENIED|403|API key not valid|billing/i.test(m))return "setup";
   if(/Failed to fetch|NetworkError|network|import|dynamically imported/i.test(m))return "Sem conexão com a internet agora. Tente de novo em instantes.";
   if(/quota|429|RESOURCE_EXHAUSTED/i.test(m))return "O limite gratuito de uso da IA acabou por hoje. Tente amanhã ou use a aba Buscar.";
   return "Não consegui calcular agora ("+m.slice(0,140)+"). Tente de novo.";
 }
+function aiKeyForm(){return `<div style="display:flex;gap:8px;margin-top:8px"><input class="input ia-key" type="password" aria-label="Chave do Gemini" autocomplete="off" placeholder="Cole a chave aqui (começa com AIza)" value="${esc(S.settings.aiKey||"")}"><button class="btn primary" data-act="iaKeySave">Salvar</button></div><p class="hint">A chave fica salva só na sua conta${currentUser?"":" e neste aparelho"}.</p>`}
 function iaBody(){
   const ia=sh.ia;
   return `<div class="field"><label for="ia-text">O que você comeu?</label><textarea class="input" id="ia-text" rows="3" placeholder="ex.: 1 filé de tilápia empanada e frita, 4 colheres de arroz, 1 concha de feijão e salada">${esc(ia.text)}</textarea></div>
     ${ia.img?`<div class="ia-photo"><img src="${ia.img}" alt="Foto do prato"><button data-act="iaNoPhoto">Remover foto</button></div>`:""}
     <div class="ia-actions"><label class="btn" for="ia-file">📷 ${ia.img?"Trocar foto":"Foto do prato"}</label><input type="file" id="ia-file" accept="image/*" hidden><button class="btn primary" data-act="iaRun" ${ia.loading?"disabled":""}>✨ Calcular</button></div>
+    <details style="margin:4px 0"><summary class="muted" style="font-size:12.5px">⚙️ Chave do Gemini${S.settings.aiKey?" (salva)":""}</summary>${aiKeyForm()}</details>
     <p class="hint">Escreva, tire uma foto ou os dois. A IA identifica cada alimento, estima o peso e calcula. Você confere e ajusta antes de adicionar.</p>
     <div id="ia-out"></div>`;
 }
@@ -1047,7 +1066,7 @@ function iaItem(r){const g=Math.max(1,+r.gramas||100),k=100/g;return {name:Strin
 function drawIaOut(){
   const el=$("#ia-out");if(!el)return;const ia=sh.ia;
   if(ia.loading){el.innerHTML=`<p class="muted"><span class="spin"></span>Analisando o prato…</p>`;return}
-  if(ia.err==="setup"){el.innerHTML=`<div class="ia-err"><b>A IA ainda não está ligada no Firebase.</b> É um passo único, feito por quem administra o app:<ol><li>Abra console.firebase.google.com e entre no projeto <b>contador-76398</b>.</li><li>No menu, abra <b>AI Logic</b> (em "Criar" ou "Build") e toque em <b>Começar</b>.</li><li>Escolha <b>Gemini Developer API</b> (gratuita) e confirme.</li></ol>Depois disso, é só tocar em Calcular de novo. Se você acabou de ativar, espere uns 5 minutos.<details style="margin-top:8px"><summary class="muted" style="font-size:12.5px">Detalhes do erro</summary><code style="font-size:11.5px;word-break:break-all">${esc(ia.errRaw||"")}</code></details></div>`;return}
+  if(ia.err==="setup"){el.innerHTML=`<div class="ia-err"><b>A IA do Firebase não respondeu.</b> Use uma chave gratuita do Gemini, que é feita uma vez só:<ol><li>Abra <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> e entre com o seu Gmail.</li><li>Toque em <b>Criar chave de API</b> e copie a chave.</li><li>Cole aqui e toque em Salvar.</li></ol>${aiKeyForm()}<details style="margin-top:8px"><summary class="muted" style="font-size:12.5px">Detalhes do erro</summary><code style="font-size:11.5px;word-break:break-all">${esc(ia.errRaw||"")}</code></details></div>`;return}
   if(ia.err){el.innerHTML=`<div class="ia-err">${esc(ia.err)}<details style="margin-top:8px"><summary class="muted" style="font-size:12.5px">Detalhes do erro</summary><code style="font-size:11.5px;word-break:break-all">${esc(ia.errRaw||"")}</code></details></div>`;return}
   if(!ia.res){el.innerHTML="";return}
   if(!ia.res.length){el.innerHTML=`<div class="ia-err">${esc(ia.note||"Não encontrei alimentos. Descreva o prato com mais detalhes.")}</div>`;return}
@@ -1276,6 +1295,7 @@ document.addEventListener("click",e=>{
     case "shBack":sh.food=null;drawSheet();focusFirst();break;
     case "offSearch":offSearch();break;
     case "iaRun":iaRun();break;
+    case "iaKeySave":{const v=(a.parentElement.querySelector("input").value||"").trim();S.settings.aiKey=v;aiModelName=null;persistSettings();toast(v?"Chave salva":"Chave removida");if(v&&(sh.ia.text||sh.ia.img))iaRun();else drawSheet();break}
     case "iaNoPhoto":sh.ia.img=null;drawSheet();break;
     case "prPick":{const f=allFoods().find(x=>x.id===a.dataset.id);if(!f)break;sh.prep.base=f;drawSheet();break}
     case "prBack":sh.prep.base=null;drawSheet();focusFirst();break;
