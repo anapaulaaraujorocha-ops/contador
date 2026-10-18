@@ -254,7 +254,7 @@ main{max-width:1080px;margin:0 auto;padding:16px 16px 110px}
 .sel-food{padding:12px;border-radius:12px;background:var(--surface-2);margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
 .sel-food .grow{flex:1;min-width:0}
 .sheet .seg{display:flex;width:100%}
-.sheet .seg button{flex:1;padding:7px 4px;font-size:13.5px}
+.sheet .seg button{flex:1;padding:7px 4px;font-size:13.5px;white-space:nowrap}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
 .chips button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 11px;font-size:13.5px;font-weight:600;color:var(--ink)}
 .chips button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
@@ -270,6 +270,22 @@ main{max-width:1080px;margin:0 auto;padding:16px 16px 110px}
 .ing-row .grow small{display:block;color:var(--muted);font-size:12px}
 .ing-row .unit-in{width:104px;flex:none}.ing-row input{width:100%}
 .hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
+textarea.input{resize:vertical;font:inherit;line-height:1.4}
+.ia-actions{display:flex;gap:8px;margin:10px 0}
+.ia-actions .btn{flex:1;justify-content:center;text-align:center}
+.ia-photo{position:relative;margin:6px 0 10px}
+.ia-photo img{width:100%;max-height:220px;object-fit:cover;border-radius:12px;display:block}
+.ia-photo button{position:absolute;top:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;border:0;border-radius:99px;padding:4px 10px;font-weight:700}
+.ia-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.ia-row .grow{flex:1;min-width:0}
+.ia-row .grow small{display:block;color:var(--muted);font-size:12.5px}
+.ia-row .unit-in{width:96px;flex:none}
+.ia-row input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:var(--accent)}
+.ia-total{font-size:14px;margin:10px 0}
+.ia-err{background:var(--surface-2);border-radius:12px;padding:12px;font-size:14px;margin:10px 0}
+.ia-err ol{margin:6px 0 0;padding-left:20px}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-3px;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;display:flex;gap:12px;align-items:center;font-weight:600;max-width:calc(100% - 32px)}
 .toast button{border:0;background:none;color:var(--accent-soft);font-weight:800;text-decoration:underline;padding:0}
@@ -871,7 +887,7 @@ function viewFoods(){
 
 /* ---------- sheet (adicionar / editar) ---------- */
 let sh=null;
-function openAdd(meal){sh={mode:"add",meal,tab:"buscar",q:"",food:null,qty:"",editId:null,prep:prepState(),rec:recState(),off:null,man:{name:"",qtyText:"",kcal:"",p:"",c:"",f:"",save:false}};drawSheet();focusFirst()}
+function openAdd(meal){sh={mode:"add",meal,tab:"ia",ia:{text:"",img:null,loading:false,err:null,res:null,note:""},q:"",food:null,qty:"",editId:null,prep:prepState(),rec:recState(),off:null,man:{name:"",qtyText:"",kcal:"",p:"",c:"",f:"",save:false}};drawSheet();focusFirst()}
 function openEdit(id){
   const it=dayItems(ui.date).find(i=>i.id===id); if(!it) return;
   sh={mode:"edit",meal:it.meal,editId:id,q:"",tab:it.base?"buscar":"manual",food:it.base?Object.assign({name:it.name,portions:[]},it.base):null,qty:it.base?String(it.qty).replace(".",","):"",
@@ -880,12 +896,12 @@ function openEdit(id){
 }
 const fmtIn=n=>String(Math.round((n||0)*10)/10).replace(".",",");
 function closeSheet(){sh=null;$("#sheetWrap").hidden=true;document.body.style.overflow=""}
-function focusFirst(){setTimeout(()=>{const el=$("#sheet input");if(el&&window.matchMedia("(min-width:761px)").matches)el.focus()},30)}
+function focusFirst(){setTimeout(()=>{const el=$("#sheet textarea,#sheet input:not([type=file]):not([type=checkbox])");if(el&&window.matchMedia("(min-width:761px)").matches)el.focus()},30)}
 function drawSheet(){
   $("#sheetWrap").hidden=false;document.body.style.overflow="hidden";
   const title=(sh.mode==="edit"?"Editar em ":"Adicionar em ")+MEAL_NAME[sh.meal]+(ui.date===todayKey()?"":" · "+cap(dayWord(ui.date).split(",")[0]));
   let body="";
-  if(sh.mode==="add") body+=`<div class="seg" role="group">${[["buscar","🔎 Buscar"],["preparo","🍳 Preparo"],["receita","🥣 Receita"],["manual","✏️ Digitar"]].map(([t,l])=>`<button data-act="shTab" data-t="${t}" aria-pressed="${sh.tab===t}">${l}</button>`).join("")}</div>`;
+  if(sh.mode==="add") body+=`<div class="seg" role="group">${[["ia","✨ IA"],["buscar","Buscar"],["preparo","Preparo"],["receita","Receita"],["manual","Digitar"]].map(([t,l])=>`<button data-act="shTab" data-t="${t}" aria-pressed="${sh.tab===t}">${l}</button>`).join("")}</div>`;
   if(sh.tab==="buscar"){
     if(sh.food){
       const f=sh.food;
@@ -900,6 +916,8 @@ function drawSheet(){
         <p class="muted" style="font-size:12.5px;margin:6px 0 0">${BASE.length} alimentos: TACO (Unicamp), pratos prontos da USDA, versões empanadas, fritas e grelhadas calculadas e itens comuns. Não achou o preparo? Use a aba Preparo ou Receita.</p>
         <ul class="result-list" id="sh-results"></ul>`;
     }
+  } else if(sh.tab==="ia"){
+    body+=iaBody();
   } else if(sh.tab==="preparo"){
     body+=prepBody();
   } else if(sh.tab==="receita"){
@@ -922,6 +940,7 @@ function drawSheet(){
   $("#sheet").innerHTML=`<div class="sheet-head"><span class="meal-emo m-${sh.meal}" aria-hidden="true">${MEAL_EMOJI[sh.meal]}</span><h2>${esc(title)}</h2><button class="icon-btn" data-act="shClose" aria-label="Fechar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="sheet-body">${body}</div>`;
   if(sh.tab==="buscar"&&!sh.food) drawResults();
   if(sh.tab==="buscar"&&sh.food) drawPreview();
+  if(sh.tab==="ia") drawIaOut();
   if(sh.tab==="preparo"){if(sh.prep.base)drawPrepOut();else drawFoodList("#pr-results",sh.prep.q,"prPick",f=>f.unit==="g",true)}
   if(sh.tab==="receita"){drawFoodList("#rc-results",sh.rec.q,"rcPick",f=>f.unit!=="porção",false);drawRecOut()}
 }
@@ -970,6 +989,103 @@ async function offSearch(){
     sh.off={q,list,err:list.length?null:"Nenhum produto com tabela nutricional encontrado na internet."};
   }catch(e){if(sh&&sh.off&&sh.off.q===q)sh.off={q,list:[],err:"Não consegui buscar na internet agora. Verifique a conexão e tente de novo."}}
   if(sh&&sh.tab==="buscar"&&!sh.food)drawResults();
+}
+
+/* ---------- IA: reconhece o prato por texto ou foto (Firebase AI Logic + Gemini) ---------- */
+const FB_WEB="12.18.0", AI_MODELS=["gemini-flash-latest","gemini-3.6-flash","gemini-2.5-flash","gemini-2.5-flash-lite"];
+let aiModelName=null, aiSdkP=null;
+const AI_SCHEMA={type:"object",properties:{
+  itens:{type:"array",items:{type:"object",properties:{
+    nome:{type:"string"},medida:{type:"string"},gramas:{type:"number"},
+    kcal:{type:"number"},proteina:{type:"number"},carboidrato:{type:"number"},gordura:{type:"number"}},
+    required:["nome","medida","gramas","kcal","proteina","carboidrato","gordura"]}},
+  observacao:{type:"string"}},required:["itens","observacao"]};
+const AI_PROMPT=`Você é nutricionista no Brasil e calcula as calorias e os macronutrientes do que a pessoa comeu.
+Identifique cada alimento ou preparação separadamente, a partir da descrição e/ou da foto.
+Para cada item:
+- nome: curto, em português do Brasil, incluindo o modo de preparo (ex.: "Tilápia empanada e frita", "Arroz branco cozido", "Feijão carioca cozido").
+- medida: a medida caseira (ex.: "1 filé médio", "4 colheres de sopa", "1 concha").
+- gramas: o peso da porção consumida. Se a pessoa informou a quantidade, converta; se for foto, estime pelo tamanho no prato; se não houver pista, use uma porção média brasileira.
+- kcal, proteina, carboidrato, gordura: valores dessa porção inteira (não por 100 g), em gramas para os macros.
+Considere o preparo: fritura absorve óleo, empanado inclui farinha e ovo, refogado leva óleo, molhos e queijos contam.
+Use como referência a TACO e a TBCA (USP); para o que não estiver nelas, use a USDA ou o rótulo típico do produto.
+Em observacao, escreva uma frase curta sobre o que foi considerado (ou, se não houver comida, explique isso e retorne itens vazio).`;
+function aiSdk(){
+  if(!aiSdkP) aiSdkP=Promise.all([import(`https://www.gstatic.com/firebasejs/${FB_WEB}/firebase-app.js`),import(`https://www.gstatic.com/firebasejs/${FB_WEB}/firebase-ai.js`)])
+    .then(([A,I])=>{const app=A.getApps().find(a=>a.name==="ia")||A.initializeApp(FIREBASE_CONFIG,"ia");return {I,ai:I.getAI(app,{backend:new I.GoogleAIBackend()})}})
+    .catch(e=>{aiSdkP=null;throw e});
+  return aiSdkP;
+}
+async function aiAsk(parts){
+  const {I,ai}=await aiSdk(); let last;
+  for(const m of (aiModelName?[aiModelName]:AI_MODELS)){
+    try{
+      const model=I.getGenerativeModel(ai,{model:m,generationConfig:{responseMimeType:"application/json",responseSchema:AI_SCHEMA,temperature:0.2}});
+      const r=await model.generateContent(parts); aiModelName=m;
+      return JSON.parse(r.response.text());
+    }catch(e){last=e;if(!/not.?found|404|is not supported|unsupported model|invalid model/i.test(String(e&&e.message||e)))throw e}
+  }
+  throw last;
+}
+function aiErrMsg(e){
+  const m=String(e&&e.message||e);
+  if(/api.?not.?enabled|has not been used|is disabled|SERVICE_DISABLED|firebasevertexai|PERMISSION_DENIED|403|API key not valid|billing/i.test(m))return "setup";
+  if(/Failed to fetch|NetworkError|network|import|dynamically imported/i.test(m))return "Sem conexão com a internet agora. Tente de novo em instantes.";
+  if(/quota|429|RESOURCE_EXHAUSTED/i.test(m))return "O limite gratuito de uso da IA acabou por hoje. Tente amanhã ou use a aba Buscar.";
+  return "Não consegui calcular agora ("+m.slice(0,140)+"). Tente de novo.";
+}
+function iaBody(){
+  const ia=sh.ia;
+  return `<div class="field"><label for="ia-text">O que você comeu?</label><textarea class="input" id="ia-text" rows="3" placeholder="ex.: 1 filé de tilápia empanada e frita, 4 colheres de arroz, 1 concha de feijão e salada">${esc(ia.text)}</textarea></div>
+    ${ia.img?`<div class="ia-photo"><img src="${ia.img}" alt="Foto do prato"><button data-act="iaNoPhoto">Remover foto</button></div>`:""}
+    <div class="ia-actions"><label class="btn" for="ia-file">📷 ${ia.img?"Trocar foto":"Foto do prato"}</label><input type="file" id="ia-file" accept="image/*" hidden><button class="btn primary" data-act="iaRun" ${ia.loading?"disabled":""}>✨ Calcular</button></div>
+    <p class="hint">Escreva, tire uma foto ou os dois. A IA identifica cada alimento, estima o peso e calcula. Você confere e ajusta antes de adicionar.</p>
+    <div id="ia-out"></div>`;
+}
+function iaItem(r){const g=Math.max(1,+r.gramas||100),k=100/g;return {name:String(r.nome||"Alimento").slice(0,80),medida:String(r.medida||""),g:String(Math.round(g)),g0:Math.round(g),on:true,
+  per:{kcal:r1((+r.kcal||0)*k),p:r1((+r.proteina||0)*k),c:r1((+r.carboidrato||0)*k),f:r1((+r.gordura||0)*k),per:100,unit:"g"}}}
+function drawIaOut(){
+  const el=$("#ia-out");if(!el)return;const ia=sh.ia;
+  if(ia.loading){el.innerHTML=`<p class="muted"><span class="spin"></span>Analisando o prato…</p>`;return}
+  if(ia.err==="setup"){el.innerHTML=`<div class="ia-err"><b>A IA ainda não está ligada no Firebase.</b> É um passo único, feito por quem administra o app:<ol><li>Abra console.firebase.google.com e entre no projeto <b>contador-76398</b>.</li><li>No menu, abra <b>AI Logic</b> (em "Criar" ou "Build") e toque em <b>Começar</b>.</li><li>Escolha <b>Gemini Developer API</b> (gratuita) e confirme.</li></ol>Depois disso, é só tocar em Calcular de novo.</div>`;return}
+  if(ia.err){el.innerHTML=`<div class="ia-err">${esc(ia.err)}</div>`;return}
+  if(!ia.res){el.innerHTML="";return}
+  if(!ia.res.length){el.innerHTML=`<div class="ia-err">${esc(ia.note||"Não encontrei alimentos. Descreva o prato com mais detalhes.")}</div>`;return}
+  const tot={kcal:0,p:0,c:0,f:0};
+  const rows=ia.res.map((it,i)=>{const m=macrosFor(it.per,num(it.g)||0);if(it.on){tot.kcal+=m.kcal;tot.p+=m.p;tot.c+=m.c;tot.f+=m.f}
+    return `<div class="ia-row"><input type="checkbox" data-iaon="${i}" ${it.on?"checked":""} aria-label="Incluir ${esc(it.name)}"><span class="food-emo" aria-hidden="true">${foodEmoji(it.name)}</span><div class="grow"><b>${esc(it.name)}</b><small>${esc(it.medida)}${it.medida?" · ":""}<span id="ia-m-${i}">${fmt0(m.kcal)} kcal · P ${fmt1(m.p)} · C ${fmt1(m.c)} · G ${fmt1(m.f)}</span></small></div><div class="unit-in"><input class="input" data-iag="${i}" inputmode="decimal" value="${esc(it.g)}" aria-label="Gramas de ${esc(it.name)}"><em>g</em></div></div>`}).join("");
+  const n=ia.res.filter(x=>x.on).length;
+  el.innerHTML=`${rows}<div class="preview" id="ia-prev">${previewHtml(tot)}</div>${ia.note?`<p class="hint" style="margin-bottom:10px">${esc(ia.note)}</p>`:""}
+    <button class="btn primary" style="width:100%" data-act="shSave" ${n?"":"disabled"}>Adicionar ${n} ${n===1?"item":"itens"}</button>`;
+}
+function iaUpdateRow(i){
+  const it=sh.ia.res[i],m=macrosFor(it.per,num(it.g)||0),el=$("#ia-m-"+i);if(el)el.textContent=`${fmt0(m.kcal)} kcal · P ${fmt1(m.p)} · C ${fmt1(m.c)} · G ${fmt1(m.f)}`;
+  const tot={kcal:0,p:0,c:0,f:0};sh.ia.res.forEach(x=>{if(!x.on)return;const q=macrosFor(x.per,num(x.g)||0);tot.kcal+=q.kcal;tot.p+=q.p;tot.c+=q.c;tot.f+=q.f});
+  const pv=$("#ia-prev");if(pv)pv.innerHTML=previewHtml(tot);
+}
+async function iaRun(){
+  const ia=sh.ia,t=$("#ia-text");if(t)ia.text=t.value;
+  if(!ia.text.trim()&&!ia.img){if(t){t.focus();t.style.borderColor="var(--over)"}return}
+  const me=sh;ia.loading=true;ia.err=null;drawSheet();
+  const parts=[{text:AI_PROMPT+"\n\nRefeição: "+MEAL_NAME[sh.meal]+"\nDescrição da pessoa: "+(ia.text.trim()||"(sem descrição, use a foto)")}];
+  if(ia.img)parts.push({inlineData:{mimeType:"image/jpeg",data:ia.img.split(",")[1]}});
+  try{const r=await aiAsk(parts);ia.res=(r.itens||[]).map(iaItem);ia.note=r.observacao||""}
+  catch(e){console.warn(e);ia.err=aiErrMsg(e)}
+  ia.loading=false;if(sh===me&&sh.tab==="ia")drawSheet();
+}
+function iaPhoto(file){
+  const fr=new FileReader();
+  fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,1024/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+    if(!sh||!sh.ia)return;sh.ia.img=c.toDataURL("image/jpeg",0.82);sh.ia.res=null;sh.ia.err=null;drawSheet()};im.onerror=()=>toast("Não consegui abrir essa imagem");im.src=fr.result};
+  fr.readAsDataURL(file);
+}
+function iaSave(){
+  const its=(sh.ia.res||[]).filter(x=>x.on&&num(x.g));if(!its.length)return;
+  const day=S.days[ui.date]||(S.days[ui.date]={items:[]});
+  its.forEach(x=>{const q=num(x.g),m=macrosFor(x.per,q);day.items.push({id:uid().slice(0,16),meal:sh.meal,name:x.name,qty:q,qtyText:fmt1(q)+" g"+(x.medida&&q===x.g0?" ("+x.medida+")":""),kcal:r1(m.kcal),p:r1(m.p),c:r1(m.c),f:r1(m.f),base:x.per})});
+  persistDay(ui.date);
+  const msg=its.length+(its.length===1?" item adicionado em ":" itens adicionados em ")+MEAL_NAME[sh.meal];
+  closeSheet();render();toast(msg);
 }
 
 /* ---------- preparo ---------- */
@@ -1071,6 +1187,7 @@ function drawPreview(){
 }
 function readMan(){const m=sh.man;["name","qty","kcal","p","c","f"].forEach(k=>{const el=$("#m-"+k);if(el){if(k==="qty")m.qtyText=el.value;else m[k]=el.value}});const s=$("#m-save");if(s)m.save=s.checked}
 function shSave(){
+  if(sh.tab==="ia"){iaSave();return}
   let item;
   if(sh.tab==="buscar"&&sh.food){
     const q=num(sh.qty); if(!q){const e=$("#sh-qty");e.focus();e.style.borderColor="var(--over)";return}
@@ -1158,6 +1275,8 @@ document.addEventListener("click",e=>{
     case "pick":{const f=allFoods().concat(sh.off&&sh.off.list||[]).find(x=>x.id===a.dataset.id);if(!f)break;sh.food=f;const p=f.portions&&f.portions[0];sh.qty=f.unit==="porção"?"1":String(p?p[1]:100);drawSheet();break}
     case "shBack":sh.food=null;drawSheet();focusFirst();break;
     case "offSearch":offSearch();break;
+    case "iaRun":iaRun();break;
+    case "iaNoPhoto":sh.ia.img=null;drawSheet();break;
     case "prPick":{const f=allFoods().find(x=>x.id===a.dataset.id);if(!f)break;sh.prep.base=f;drawSheet();break}
     case "prBack":sh.prep.base=null;drawSheet();focusFirst();break;
     case "prMethod":{const op=$("#sheet details.adj");const wasOpen=op&&op.open;applyMethod(sh.prep,a.dataset.k);drawSheet();if(wasOpen)$("#sheet details.adj").open=true;break}
@@ -1174,6 +1293,9 @@ document.addEventListener("input",e=>{
   const t=e.target;
   if(t.id==="sh-q"){sh.q=t.value;drawResults()}
   else if(t.id==="sh-qty"){sh.qty=t.value;t.style.borderColor="";drawPreview()}
+  else if(t.id==="ia-text"){sh.ia.text=t.value;t.style.borderColor=""}
+  else if(t.dataset&&t.dataset.iag!=null){sh.ia.res[+t.dataset.iag].g=t.value;iaUpdateRow(+t.dataset.iag)}
+  else if(t.dataset&&t.dataset.iaon!=null){sh.ia.res[+t.dataset.iaon].on=t.checked;drawIaOut()}
   else if(t.id==="pr-q"){sh.prep.q=t.value;drawFoodList("#pr-results",t.value,"prPick",f=>f.unit==="g",true)}
   else if(t.id==="pr-qty"){sh.prep.qty=t.value;t.style.borderColor="";drawPrepOut()}
   else if(t.id==="pr-rend"||t.id==="pr-oleo"){sh.prep[t.id.slice(3)]=t.value;drawPrepOut()}
@@ -1201,6 +1323,7 @@ document.addEventListener("change",e=>{
     };
     fr.readAsText(t.files[0]);return;
   }
+  if(t.id==="ia-file"&&t.files&&t.files[0]){iaPhoto(t.files[0]);t.value="";return}
   if((t.id==="datePick"||t.id==="datePick2")&&t.value){ui.date=t.value;render();return}
   if(t.dataset.goal){S.settings.goals[t.dataset.goal]=num(t.value);persistSettings();rerenderKeepFocus();toast("Dieta salva");return}
   if(t.dataset.mg){const m=t.dataset.mg;const o=S.settings.mealGoals[m]=Object.assign({},S.settings.mealGoals[m]);o[t.dataset.k]=num(t.value);persistSettings();rerenderKeepFocus();toast("Dieta salva");return}
