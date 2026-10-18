@@ -253,6 +253,23 @@ main{max-width:1080px;margin:0 auto;padding:16px 16px 110px}
 .form-grid .full{grid-column:1/-1}
 .sel-food{padding:12px;border-radius:12px;background:var(--surface-2);margin-bottom:8px;display:flex;gap:10px;align-items:flex-start}
 .sel-food .grow{flex:1;min-width:0}
+.sheet .seg{display:flex;width:100%}
+.sheet .seg button{flex:1;padding:7px 4px;font-size:13.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}
+.chips button{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 11px;font-size:13.5px;font-weight:600;color:var(--ink)}
+.chips button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.calc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:8px 0}
+.calc-grid .full{grid-column:1/-1}
+.adj{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:6px 0 10px}
+.adj summary{font-weight:700;font-size:14px;cursor:pointer}
+.calc-out{background:var(--surface-2);border-radius:12px;padding:10px 12px;font-size:13.5px;margin:8px 0}
+.calc-out b{font-family:var(--f-display)}
+.calc-out .brk{color:var(--muted);font-size:12.5px;margin-top:4px}
+.ing-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.ing-row .grow{flex:1;min-width:0;font-size:14px}
+.ing-row .grow small{display:block;color:var(--muted);font-size:12px}
+.ing-row .unit-in{width:104px;flex:none}.ing-row input{width:100%}
+.hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;display:flex;gap:12px;align-items:center;font-weight:600;max-width:calc(100% - 32px)}
 .toast button{border:0;background:none;color:var(--accent-soft);font-weight:800;text-decoration:underline;padding:0}
@@ -318,7 +335,7 @@ const FOOD_EMOJI=[
  [/cogumelo|shitake|champignon|shimeji/,"🍄"],[/alface|rucula|agriao|couve|espinafre|acelga|repolho|chicoria|almeirao|salada|mostarda, folha|taioba|serralha|bertalha|ora-pro-nobis|manjericao|salsa|coentro|hortela|broto|vagem|abobora|jerimum|palmito|aspargo|alcachofra|ervilha torta|legume/,"🥬"],
  [/sopa|caldo|canja|vaca atolada|estrogonofe|strogonoff|moqueca|bobó|bobo|acaraje|vatapa|baiao|tutu|virado|empadao|cozido|ensopado|escondidinho/,"🍲"], [/ketchup|mostarda|shoyu|molho|vinagre|sal\b|sal,|tempero|caldo/,"🧂"],
 ];
-function foodEmoji(name){const n=norm(name||"");for(const [re,e] of FOOD_EMOJI){if(re.test(n))return e}return "🍽️"}
+function foodEmoji(name){const n=norm(name||"");if(/^(oleo|azeite)\b/.test(n))return "🫒";for(const [re,e] of FOOD_EMOJI){if(re.test(n))return e}return "🍽️"}
 const MAC=[["p","Proteína","p-c"],["c","Carboidrato","c-c"],["f","Gordura","f-c"]];
 
 // Alimentos comuns com porções caseiras: valores médios por 100 g (ou 100 ml), de TACO, USDA e rótulos
@@ -428,7 +445,6 @@ const COMMON=BASE_RAW.map((r,i)=>({id:"b"+i,name:r[0],kcal:r[1],p:r[2],c:r[3],f:
 const TACO_CATS=["Cereais e derivados", "Verduras, hortaliças e derivados", "Frutas e derivados", "Gorduras e óleos", "Pescados e frutos do mar", "Carnes e derivados", "Leite e derivados", "Bebidas (alcoólicas e não alcoólicas)", "Ovos e derivados", "Produtos açucarados", "Miscelâneas", "Outros alimentos industrializados", "Alimentos preparados", "Leguminosas e derivados", "Nozes e sementes"];
 const TACO=[["Arroz, integral, cozido",124,2.6,25.8,1.0,"g",0],["Arroz, integral, cru",360,7.3,77.5,1.9,"g",0],["Arroz, tipo 1, cozido",128,2.5,28.1,0.2,"g",0],["Arroz, tipo 1, cru",358,7.2,78.8,0.3,"g",0],["Arroz, tipo 2, cozido",130,2.6,28.2,0.4,"g",0],["Arroz, tipo 2, cru",358,7.2,78.9,0.3,"g",0],["Aveia, flocos, crua",394,13.9,66.6,8.5,"g",0],["Biscoito, doce, maisena",443,8.1,75.2,12.0,"g",0],["Biscoito, doce, recheado com chocolate",472,6.4,70.5,19.6,"g",0],["Biscoito, doce, recheado com morango",471,5.7,71.0,19.6,"g",0],["Biscoito, doce, wafer, recheado de chocolate",502,5.6,67.5,24.7,"g",0],["Biscoito, doce, wafer, recheado de morango",513,4.5,67.4,26.4,"g",0],["Biscoito, salgado, cream cracker",432,10.1,68.7,14.4,"g",0],["Bolo, mistura para",419,6.2,84.7,6.1,"g",0],["Bolo, pronto, aipim",324,4.4,47.9,12.7,"g",0],["Bolo, pronto, chocolate",410,6.2,54.7,18.5,"g",0],["Bolo, pronto, coco",333,5.7,52.3,11.3,"g",0],["Bolo, pronto, milho",311,4.8,45.1,12.4,"g",0],["Canjica, branca, crua",358,7.2,78.1,1.0,"g",0],["Canjica, com leite integral",112,2.4,23.6,1.2,"g",0],["Cereais, milho, flocos, com sal",370,7.3,80.8,1.6,"g",0],["Cereais, milho, flocos, sem sal",363,6.9,80.4,1.2,"g",0],["Cereais, mingau, milho, infantil",394,6.4,87.3,1.1,"g",0],["Cereais, mistura para vitamina, trigo, cevada e aveia",381,8.9,81.6,2.1,"g",0],["Cereal matinal, milho",365,7.2,83.8,1.0,"g",0],["Cereal matinal, milho, açúcar",377,4.7,88.8,0.7,"g",0],["Creme de arroz, pó",386,7.0,83.9,1.2,"g",0],["Creme de milho, pó",333,4.8,86.1,1.6,"g",0],["Curau, milho verde",78,2.4,13.9,1.6,"g",0],["Curau, milho verde, mistura para",402,2.2,79.8,13.4,"g",0],["Farinha, de arroz, enriquecida",363,1.3,85.5,0.3,"g",0],["Farinha, de centeio, integral",336,12.5,73.3,1.8,"g",0],["Farinha, de milho, amarela",351,7.2,79.1,1.5,"g",0],["Farinha, de rosca",371,11.4,75.8,1.5,"g",0],["Farinha, de trigo",360,9.8,75.1,1.4,"g",0],["Farinha, láctea, de cereais",415,11.9,77.8,5.8,"g",0],["Lasanha, massa fresca, cozida",164,5.8,32.5,1.2,"g",0],["Lasanha, massa fresca, crua",220,7.0,45.1,1.3,"g",0],["Macarrão, instantâneo",436,8.8,62.4,17.2,"g",0],["Macarrão, trigo, cru",371,10.0,77.9,1.3,"g",0],["Macarrão, trigo, cru, com ovos",371,10.3,76.6,2.0,"g",0],["Milho, amido, cru",361,0.6,87.1,0,"g",0],["Milho, fubá, cru",353,7.2,78.9,1.9,"g",0],["Milho, verde, cru",138,6.6,28.6,0.6,"g",0],["Milho, verde, enlatado, drenado",98,3.2,17.1,2.4,"g",0],["Mingau tradicional, pó",373,0.6,89.3,0.4,"g",0],["Pamonha, barra para cozimento, pré-cozida",171,2.6,30.7,4.8,"g",0],["Pão, aveia, forma",343,12.4,59.6,5.7,"g",0],["Pão, de soja",309,11.3,56.5,3.6,"g",0],["Pão, glúten, forma",253,12.0,44.1,2.7,"g",0],["Pão, milho, forma",292,8.3,56.4,3.1,"g",0],["Pão, trigo, forma, integral",253,9.4,49.9,3.7,"g",0],["Pão, trigo, francês",300,8.0,58.6,3.1,"g",0],["Pão, trigo, sovado",311,8.4,61.5,2.8,"g",0],["Pastel, de carne, cru",289,10.7,42.0,8.8,"g",0],["Pastel, de carne, frito",388,10.1,43.8,20.1,"g",0],["Pastel, de queijo, cru",308,9.9,45.9,9.6,"g",0],["Pastel, de queijo, frito",422,8.7,48.1,22.7,"g",0],["Pastel, massa, crua",310,6.9,57.4,5.5,"g",0],["Pastel, massa, frita",570,6.0,49.3,40.9,"g",0],["Pipoca, com óleo de soja, sem sal",448,9.9,70.3,15.9,"g",0],["Polenta, pré-cozida",103,2.3,23.3,0.3,"g",0],["Torrada, pão francês",377,10.5,74.6,3.3,"g",0],["Abóbora, cabotian, cozida",48,1.4,10.8,0.7,"g",1],["Abóbora, cabotian, crua",39,1.7,8.4,0.5,"g",1],["Abóbora, menina brasileira, crua",14,0.6,3.3,0,"g",1],["Abóbora, moranga, crua",12,1.0,2.7,0.1,"g",1],["Abóbora, moranga, refogada",29,0.4,6.0,0.8,"g",1],["Abóbora, pescoço, crua",24,0.7,6.1,0.1,"g",1],["Abobrinha, italiana, cozida",15,1.1,3.0,0.2,"g",1],["Abobrinha, italiana, crua",19,1.1,4.3,0.1,"g",1],["Abobrinha, italiana, refogada",24,1.1,4.2,0.8,"g",1],["Abobrinha, paulista, crua",31,0.6,7.9,0.1,"g",1],["Acelga, crua",21,1.4,4.6,0.1,"g",1],["Agrião, cru",17,2.7,2.3,0.2,"g",1],["Aipo, cru",19,0.8,4.3,0.1,"g",1],["Alface, americana, crua",9,0.6,1.7,0.1,"g",1],["Alface, crespa, crua",11,1.3,1.7,0.2,"g",1],["Alface, lisa, crua",14,1.7,2.4,0.1,"g",1],["Alface, roxa, crua",13,0.9,2.5,0.2,"g",1],["Alfavaca, crua",29,2.7,5.2,0.5,"g",1],["Alho, cru",113,7.0,23.9,0.2,"g",1],["Alho-poró, cru",32,1.4,6.9,0.1,"g",1],["Almeirão, cru",18,1.8,3.3,0.2,"g",1],["Almeirão, refogado",65,1.7,5.7,4.8,"g",1],["Batata, baroa, cozida",80,0.9,18.9,0.2,"g",1],["Batata, baroa, crua",101,1.0,24.0,0.2,"g",1],["Batata, doce, cozida",77,0.6,18.4,0.1,"g",1],["Batata, doce, crua",118,1.3,28.2,0.1,"g",1],["Batata, frita, tipo chips, industrializada",543,5.6,51.2,36.6,"g",1],["Batata, inglesa, cozida",52,1.2,11.9,0,"g",1],["Batata, inglesa, crua",64,1.8,14.7,0,"g",1],["Batata, inglesa, frita",267,5.0,35.6,13.1,"g",1],["Batata, inglesa, sauté",68,1.3,14.1,0.9,"g",1],["Berinjela, cozida",19,0.7,4.5,0.1,"g",1],["Berinjela, crua",20,1.2,4.4,0.1,"g",1],["Beterraba, cozida",32,1.3,7.2,0.1,"g",1],["Beterraba, crua",49,1.9,11.1,0.1,"g",1],["Biscoito, polvilho doce",438,1.3,80.5,12.2,"g",1],["Brócolis, cozido",25,2.1,4.4,0.5,"g",1],["Brócolis, cru",25,3.6,4.0,0.3,"g",1],["Cará, cozido",78,1.5,18.9,0.1,"g",1],["Cará, cru",96,2.3,23.0,0.1,"g",1],["Caruru, cru",34,3.2,6.0,0.6,"g",1],["Catalonha, crua",24,1.9,4.8,0.3,"g",1],["Catalonha, refogada",63,2.0,4.8,4.8,"g",1],["Cebola, crua",39,1.7,8.9,0.1,"g",1],["Cebolinha, crua",20,1.9,3.4,0.4,"g",1],["Cenoura, cozida",30,0.8,6.7,0.2,"g",1],["Cenoura, crua",34,1.3,7.7,0.2,"g",1],["Chicória, crua",14,1.1,2.9,0.1,"g",1],["Chuchu, cozido",19,0.4,4.8,0,"g",1],["Chuchu, cru",17,0.7,4.1,0.1,"g",1],["Coentro, folhas desidratadas",309,20.9,48.0,10.4,"g",1],["Couve, manteiga, crua",27,2.9,4.3,0.5,"g",1],["Couve, manteiga, refogada",90,1.7,8.7,6.6,"g",1],["Couve-flor, crua",23,1.9,4.5,0.2,"g",1],["Couve-flor, cozida",19,1.2,3.9,0.3,"g",1],["Espinafre, Nova Zelândia, cru",16,2.0,2.6,0.2,"g",1],["Espinafre, Nova Zelândia, refogado",67,2.7,4.2,5.4,"g",1],["Farinha, de mandioca, crua",361,1.6,87.9,0.3,"g",1],["Farinha, de mandioca, torrada",365,1.2,89.2,0.3,"g",1],["Farinha, de puba",360,1.6,87.3,0.5,"g",1],["Fécula, de mandioca",331,0.5,81.1,0.3,"g",1],["Feijão, broto, cru",39,4.2,7.8,0.1,"g",1],["Inhame, cru",97,2.1,23.2,0.2,"g",1],["Jiló, cru",27,1.4,6.2,0.2,"g",1],["Jurubeba, crua",126,4.4,23.1,3.9,"g",1],["Mandioca, cozida",125,0.6,30.1,0.3,"g",1],["Mandioca, crua",151,1.1,36.2,0.3,"g",1],["Mandioca, farofa, temperada",406,2.1,80.3,9.1,"g",1],["Mandioca, frita",300,1.4,50.3,11.2,"g",1],["Manjericão, cru",21,2.0,3.6,0.4,"g",1],["Maxixe, cru",14,1.4,2.7,0.1,"g",1],["Mostarda, folha, crua",18,2.1,3.2,0.2,"g",1],["Nhoque, batata, cozido",181,5.9,36.8,1.9,"g",1],["Nabo, cru",18,1.2,4.1,0.1,"g",1],["Palmito, juçara, em conserva",23,1.8,4.3,0.4,"g",1],["Palmito, pupunha, em conserva",29,2.5,5.5,0.5,"g",1],["Pão, de queijo, assado",363,5.1,34.2,24.6,"g",1],["Pão, de queijo, cru",295,3.6,38.5,14.0,"g",1],["Pepino, cru",10,0.9,2.0,0,"g",1],["Pimentão, amarelo, cru",28,1.2,6.0,0.4,"g",1],["Pimentão, verde, cru",21,1.1,4.9,0.2,"g",1],["Pimentão, vermelho, cru",23,1.0,5.5,0.1,"g",1],["Polvilho, doce",351,0.4,86.8,0,"g",1],["Quiabo, cru",30,1.9,6.4,0.3,"g",1],["Rabanete, cru",14,1.4,2.7,0.1,"g",1],["Repolho, branco, cru",17,0.9,3.9,0.1,"g",1],["Repolho, roxo, cru",31,1.9,7.2,0.1,"g",1],["Repolho, roxo, refogado",42,1.8,7.6,1.2,"g",1],["Rúcula, crua",13,1.8,2.2,0.1,"g",1],["Salsa, crua",33,3.3,5.7,0.6,"g",1],["Seleta de legumes, enlatada",57,3.4,12.7,0.4,"g",1],["Serralha, crua",30,2.7,4.9,0.7,"g",1],["Taioba, crua",34,2.9,5.4,0.9,"g",1],["Tomate, com semente, cru",15,1.1,3.1,0.2,"g",1],["Tomate, extrato",61,2.4,15.0,0.2,"g",1],["Tomate, molho industrializado",38,1.4,7.7,0.9,"g",1],["Tomate, purê",28,1.4,6.9,0,"g",1],["Tomate, salada",21,0.8,5.1,0,"g",1],["Vagem, crua",25,1.8,5.3,0.2,"g",1],["Abacate, cru",96,1.2,6.0,8.4,"g",2],["Abacaxi, cru",48,0.9,12.3,0.1,"g",2],["Abacaxi, polpa, congelada",31,0.5,7.8,0.1,"g",2],["Abiu, cru",62,0.8,14.9,0.7,"g",2],["Açaí, polpa, com xarope de guaraná e glucose",110,0.7,21.5,3.7,"g",2],["Açaí, polpa, congelada",58,0.8,6.2,3.9,"g",2],["Acerola, crua",33,0.9,8.0,0.2,"g",2],["Acerola, polpa, congelada",22,0.6,5.5,0,"g",2],["Ameixa, calda, enlatada",183,0.4,46.9,0,"g",2],["Ameixa, crua",53,0.8,13.9,0,"g",2],["Ameixa, em calda, enlatada, drenada",177,1.0,47.7,0.3,"g",2],["Atemóia, crua",97,1.0,25.3,0.3,"g",2],["Banana, da terra, crua",128,1.4,33.7,0.2,"g",2],["Banana, doce em barra",280,2.2,75.7,0.1,"g",2],["Banana, figo, crua",105,1.1,27.8,0.1,"g",2],["Banana, maçã, crua",87,1.8,22.3,0.1,"g",2],["Banana, nanica, crua",92,1.4,23.8,0.1,"g",2],["Banana, ouro, crua",112,1.5,29.3,0.2,"g",2],["Banana, pacova, crua",78,1.2,20.3,0.1,"g",2],["Banana, prata, crua",98,1.3,26.0,0.1,"g",2],["Cacau, cru",74,1.0,19.4,0.1,"g",2],["Cajá-Manga, cru",46,1.3,11.4,0,"g",2],["Cajá, polpa, congelada",26,0.6,6.4,0.2,"g",2],["Caju, cru",43,1.0,10.3,0.3,"g",2],["Caju, polpa, congelada",37,0.5,9.4,0.2,"g",2],["Caju, suco concentrado, envasado",45,0.4,10.7,0.2,"g",2],["Caqui, chocolate, cru",71,0.4,19.3,0.1,"g",2],["Carambola, crua",46,0.9,11.5,0.2,"g",2],["Ciriguela, crua",76,1.4,18.9,0.4,"g",2],["Cupuaçu, cru",49,1.2,10.4,1.0,"g",2],["Cupuaçu, polpa, congelada",49,0.8,11.4,0.6,"g",2],["Figo, cru",41,1.0,10.2,0.2,"g",2],["Figo, enlatado, em calda",184,0.6,50.3,0.2,"g",2],["Fruta-pão, crua",67,1.1,17.2,0.2,"g",2],["Goiaba, branca, com casca, crua",52,0.9,12.4,0.5,"g",2],["Goiaba, doce em pasta",269,0.6,74.1,0,"g",2],["Goiaba, doce, cascão",286,0.4,78.7,0.1,"g",2],["Goiaba, vermelha, com casca, crua",54,1.1,13.0,0.4,"g",2],["Graviola, crua",62,0.8,15.8,0.2,"g",2],["Graviola, polpa, congelada",38,0.6,9.8,0.1,"g",2],["Jabuticaba, crua",58,0.6,15.3,0.1,"g",2],["Jaca, crua",88,1.4,22.5,0.3,"g",2],["Jambo, cru",27,0.9,6.5,0.1,"g",2],["Jamelão, cru",41,0.5,10.6,0.1,"g",2],["Kiwi, cru",51,1.3,11.5,0.6,"g",2],["Laranja, baía, crua",45,1.0,11.5,0.1,"g",2],["Laranja, baía, suco",37,0.7,8.7,0,"g",2],["Laranja, da terra, crua",51,1.1,12.9,0.2,"g",2],["Laranja, da terra, suco",41,0.7,9.6,0.1,"g",2],["Laranja, lima, crua",46,1.1,11.5,0.1,"g",2],["Laranja, lima, suco",39,0.7,9.2,0.1,"g",2],["Laranja, pêra, crua",37,1.0,8.9,0.1,"g",2],["Laranja, pêra, suco",33,0.7,7.6,0.1,"g",2],["Laranja, valência, crua",46,0.8,11.7,0.2,"g",2],["Laranja, valência, suco",36,0.5,8.6,0.1,"g",2],["Limão, cravo, suco",14,0.3,5.2,0,"g",2],["Limão, galego, suco",22,0.6,7.3,0.1,"g",2],["Limão, tahiti, cru",32,0.9,11.1,0.1,"g",2],["Maçã, Argentina, com casca, crua",63,0.2,16.6,0.2,"g",2],["Maçã, Fuji, com casca, crua",56,0.3,15.2,0,"g",2],["Macaúba, crua",404,2.1,13.9,40.7,"g",2],["Mamão, doce em calda, drenado",196,0.2,54.0,0.1,"g",2],["Mamão, Formosa, cru",45,0.8,11.6,0.1,"g",2],["Mamão, Papaia, cru",40,0.5,10.4,0.1,"g",2],["Mamão verde, doce em calda, drenado",209,0.3,57.6,0.1,"g",2],["Manga, Haden, crua",64,0.4,16.7,0.3,"g",2],["Manga, Palmer, crua",72,0.4,19.4,0.2,"g",2],["Manga, polpa, congelada",48,0.4,12.5,0.2,"g",2],["Manga, Tommy Atkins, crua",51,0.9,12.8,0.2,"g",2],["Maracujá, cru",68,2.0,12.3,2.1,"g",2],["Maracujá, polpa, congelada",39,0.8,9.6,0.2,"g",2],["Maracujá, suco concentrado, envasado",42,0.8,9.6,0.2,"g",2],["Melancia, crua",33,0.9,8.1,0,"g",2],["Melão, cru",29,0.7,7.5,0,"g",2],["Mexerica, Murcote, crua",58,0.9,14.9,0.1,"g",2],["Mexerica, Rio, crua",37,0.7,9.3,0.1,"g",2],["Morango, cru",30,0.9,6.8,0.3,"g",2],["Nêspera, crua",43,0.3,11.5,0,"g",2],["Pequi, cru",205,2.3,13.0,18.0,"g",2],["Pêra, Park, crua",61,0.2,16.1,0.2,"g",2],["Pêra, Williams, crua",53,0.6,14.0,0.1,"g",2],["Pêssego, Aurora, cru",36,0.8,9.3,0,"g",2],["Pêssego, enlatado, em calda",63,0.7,16.9,0,"g",2],["Pinha, crua",88,1.5,22.4,0.3,"g",2],["Pitanga, crua",41,0.9,10.2,0.2,"g",2],["Pitanga, polpa, congelada",19,0.3,4.8,0.1,"g",2],["Romã, crua",56,0.4,15.1,0,"g",2],["Tamarindo, cru",276,3.2,72.5,0.5,"g",2],["Tangerina, Poncã, crua",38,0.8,9.6,0.1,"g",2],["Tangerina, Poncã, suco",36,0.5,8.8,0,"g",2],["Tucumã, cru",262,2.1,26.5,19.1,"g",2],["Umbu, cru",37,0.8,9.4,0,"g",2],["Umbu, polpa, congelada",34,0.5,8.8,0.1,"g",2],["Uva, Itália, crua",53,0.7,13.6,0.2,"g",2],["Uva, Rubi, crua",49,0.6,12.7,0.2,"g",2],["Uva, suco concentrado, envasado",58,0,14.7,0,"g",2],["Azeite, de dendê",884,0,0,100.0,"g",3],["Azeite, de oliva, extra virgem",884,0,0,100.0,"g",3],["Manteiga, com sal",726,0.4,0.1,82.4,"g",3],["Manteiga, sem sal",758,0.4,0,86.0,"g",3],["Margarina, com óleo hidrogenado, com sal (65% de lipídeos)",596,0,0,67.4,"g",3],["Margarina, com óleo hidrogenado, sem sal (80% de lipídeos)",723,0,0,81.7,"g",3],["Margarina, com óleo interesterificado, com sal (65%de lipídeos)",594,0,0,67.2,"g",3],["Margarina, com óleo interesterificado, sem sal (65% de lipídeos)",593,0,0,67.1,"g",3],["Óleo, de babaçu",884,0,0,100.0,"g",3],["Óleo, de canola",884,0,0,100.0,"g",3],["Óleo, de girassol",884,0,0,100.0,"g",3],["Óleo, de milho",884,0,0,100.0,"g",3],["Óleo, de pequi",884,0,0,100.0,"g",3],["Óleo, de soja",884,0,0,100.0,"g",3],["Abadejo, filé, congelado, assado",112,23.5,0,1.2,"g",4],["Abadejo, filé, congelado,cozido",91,19.3,0,0.9,"g",4],["Abadejo, filé, congelado, cru",59,13.1,0,0.4,"g",4],["Abadejo, filé, congelado, grelhado",130,27.6,0,1.3,"g",4],["Atum, conserva em óleo",166,26.2,0,6.0,"g",4],["Atum, fresco, cru",118,25.7,0,0.9,"g",4],["Bacalhau, salgado, cru",136,29.0,0,1.3,"g",4],["Bacalhau, salgado, refogado",140,24.0,1.2,3.6,"g",4],["Cação, posta, com farinha de trigo, frita",208,25.0,3.1,10.0,"g",4],["Cação, posta, cozida",116,25.6,0,0.7,"g",4],["Cação, posta, crua",83,17.9,0,0.8,"g",4],["Camarão, Rio Grande, grande, cozido",90,19.0,0,1.0,"g",4],["Camarão, Rio Grande, grande, cru",47,10.0,0,0.5,"g",4],["Camarão, Sete Barbas, sem cabeça, com casca, frito",231,18.4,2.9,15.6,"g",4],["Caranguejo, cozido",83,18.5,0,0.4,"g",4],["Corimba, cru",128,17.4,0,6.0,"g",4],["Corimbatá, assado",261,19.9,0,19.6,"g",4],["Corimbatá, cozido",239,20.1,0,16.9,"g",4],["Corvina de água doce, crua",101,18.9,0,2.2,"g",4],["Corvina do mar, crua",94,18.6,0,1.6,"g",4],["Corvina grande, assada",147,26.8,0,3.6,"g",4],["Corvina grande, cozida",100,23.4,0,2.6,"g",4],["Dourada de água doce, fresca",131,18.8,0,5.6,"g",4],["Lambari, congelado, cru",131,16.8,0,6.5,"g",4],["Lambari, congelado, frito",327,28.4,0,22.8,"g",4],["Lambari, fresco, cru",152,15.7,0,9.4,"g",4],["Manjuba, com farinha de trigo, frita",344,23.5,10.2,22.6,"g",4],["Manjuba, frita",349,30.1,0,24.5,"g",4],["Merluza, filé, assado",122,26.6,0,0.9,"g",4],["Merluza, filé, cru",89,16.6,0,2.0,"g",4],["Merluza, filé, frito",192,26.9,0,8.5,"g",4],["Pescada, branca, crua",111,16.3,0,4.6,"g",4],["Pescada, branca, frita",223,27.4,0,11.8,"g",4],["Pescada, filé, com farinha de trigo, frito",283,21.4,5.0,19.1,"g",4],["Pescada, filé, cru",107,16.7,0,4.0,"g",4],["Pescada, filé, frito",154,28.6,0,3.6,"g",4],["Pescada, filé, molho escabeche",142,11.8,5.0,8.0,"g",4],["Pescadinha, crua",76,15.5,0,1.1,"g",4],["Pintado, assado",192,36.5,0,4.0,"g",4],["Pintado, cru",91,18.6,0,1.3,"g",4],["Pintado, grelhado",152,30.8,0,2.3,"g",4],["Porquinho, cru",93,20.5,0,0.6,"g",4],["Salmão, filé, com pele, fresco,  grelhado",229,23.9,0,14.0,"g",4],["Salmão, sem pele, fresco, cru",170,19.3,0,9.7,"g",4],["Salmão, sem pele, fresco, grelhado",243,26.1,0,14.5,"g",4],["Sardinha, assada",164,32.2,0,3.0,"g",4],["Sardinha, conserva em óleo",285,15.9,0,24.0,"g",4],["Sardinha, frita",257,33.4,0,12.7,"g",4],["Sardinha, inteira, crua",114,21.1,0,2.7,"g",4],["Tucunaré, filé, congelado, cru",88,18.0,0,1.2,"g",4],["Apresuntado",129,13.5,2.9,6.7,"g",5],["Caldo de carne, tablete",241,7.8,15.1,16.6,"g",5],["Caldo de galinha, tablete",251,6.3,10.6,20.4,"g",5],["Carne, bovina, acém, moído, cozido",212,26.7,0,10.9,"g",5],["Carne, bovina, acém, moído, cru",137,19.4,0,5.9,"g",5],["Carne, bovina, acém, sem gordura, cozido",215,27.3,0,10.9,"g",5],["Carne, bovina, acém, sem gordura, cru",144,20.8,0,6.1,"g",5],["Carne, bovina, almôndegas, cruas",189,12.3,9.8,11.2,"g",5],["Carne, bovina, almôndegas, fritas",272,18.2,14.3,15.8,"g",5],["Carne, bovina, bucho, cozido",133,21.6,0,4.5,"g",5],["Carne, bovina, bucho, cru",137,20.5,0,5.5,"g",5],["Carne, bovina, capa de contra-filé, com gordura, crua",217,19.2,0,15.0,"g",5],["Carne, bovina, capa de contra-filé, com gordura, grelhada",312,30.7,0,20.0,"g",5],["Carne, bovina, capa de contra-filé, sem gordura, crua",131,21.5,0,4.3,"g",5],["Carne, bovina, capa de contra-filé, sem gordura, grelhada",239,35.1,0,10.0,"g",5],["Carne, bovina, charque, cozido",263,36.4,0,11.9,"g",5],["Carne, bovina, charque, cru",249,22.7,0,16.8,"g",5],["Carne, bovina, contra-filé, à milanesa",352,20.6,12.2,24.0,"g",5],["Carne, bovina, contra-filé de costela, cru",202,19.8,0,13.1,"g",5],["Carne, bovina, contra-filé de costela, grelhado",275,29.9,0,16.3,"g",5],["Carne, bovina, contra-filé, com gordura, cru",206,21.2,0,12.8,"g",5],["Carne, bovina, contra-filé, com gordura, grelhado",278,32.4,0,15.5,"g",5],["Carne, bovina, contra-filé, sem gordura, cru",157,24.0,0,6.0,"g",5],["Carne, bovina, contra-filé, sem gordura, grelhado",194,35.9,0,4.5,"g",5],["Carne, bovina, costela, assada",373,28.8,0,27.7,"g",5],["Carne, bovina, costela, crua",358,16.7,0,31.8,"g",5],["Carne, bovina, coxão duro, sem gordura, cozido",217,31.9,0,8.9,"g",5],["Carne, bovina, coxão duro, sem gordura, cru",148,21.5,0,6.2,"g",5],["Carne, bovina, coxão mole, sem gordura, cozido",219,32.4,0,8.9,"g",5],["Carne, bovina, coxão mole, sem gordura, cru",169,21.2,0,8.7,"g",5],["Carne, bovina, cupim, assado",330,28.6,0,23.0,"g",5],["Carne, bovina, cupim, cru",221,19.5,0,15.3,"g",5],["Carne, bovina, fígado, cru",141,20.7,1.1,5.4,"g",5],["Carne, bovina, fígado, grelhado",225,29.9,4.2,9.0,"g",5],["Carne, bovina, filé mingnon, sem gordura, cru",143,21.6,0,5.6,"g",5],["Carne, bovina, filé mingnon, sem gordura, grelhado",220,32.8,0,8.8,"g",5],["Carne, bovina, flanco, sem gordura, cozido",196,29.4,0,7.8,"g",5],["Carne, bovina, flanco, sem gordura, cru",141,20.0,0,6.2,"g",5],["Carne, bovina, fraldinha, com gordura, cozida",338,24.2,0,26.0,"g",5],["Carne, bovina, fraldinha, com gordura, crua",221,17.6,0,16.1,"g",5],["Carne, bovina, lagarto, cozido",222,32.9,0,9.1,"g",5],["Carne, bovina, lagarto, cru",135,20.5,0,5.2,"g",5],["Carne, bovina, língua, cozida",315,21.4,0,24.8,"g",5],["Carne, bovina, língua, crua",215,17.1,0,15.8,"g",5],["Carne, bovina, maminha, crua",153,20.9,0,7.0,"g",5],["Carne, bovina, maminha, grelhada",153,30.7,0,2.4,"g",5],["Carne, bovina, miolo de alcatra, sem gordura, cru",163,21.6,0,7.8,"g",5],["Carne, bovina, miolo de alcatra, sem gordura, grelhado",241,31.9,0,11.6,"g",5],["Carne, bovina, músculo, sem gordura, cozido",194,31.2,0,6.7,"g",5],["Carne, bovina, músculo, sem gordura, cru",142,21.6,0,5.5,"g",5],["Carne, bovina, paleta, com gordura, crua",159,21.4,0,7.5,"g",5],["Carne, bovina, paleta, sem gordura, cozida",194,29.7,0,7.4,"g",5],["Carne, bovina, paleta, sem gordura, crua",141,21.0,0,5.7,"g",5],["Carne, bovina, patinho, sem gordura, cru",133,21.7,0,4.5,"g",5],["Carne, bovina, patinho, sem gordura, grelhado",219,35.9,0,7.3,"g",5],["Carne, bovina, peito, sem gordura, cozido",338,22.2,0,27.0,"g",5],["Carne, bovina, peito, sem gordura, cru",259,17.6,0,20.4,"g",5],["Carne, bovina, picanha, com gordura, crua",213,18.8,0,14.7,"g",5],["Carne, bovina, picanha, com gordura, grelhada",289,26.4,0,19.5,"g",5],["Carne, bovina, picanha, sem gordura, crua",134,21.3,0,4.7,"g",5],["Carne, bovina, picanha, sem gordura, grelhada",238,31.9,0,11.3,"g",5],["Carne, bovina, seca, cozida",313,26.9,0,21.9,"g",5],["Carne, bovina, seca, crua",313,19.7,0,25.4,"g",5],["Coxinha de frango, frita",283,9.6,34.5,11.8,"g",5],["Croquete, de carne, cru",246,12.0,13.9,15.6,"g",5],["Croquete, de carne, frito",347,16.9,18.1,22.7,"g",5],["Empada de frango, pré-cozida, assada",358,6.9,47.5,15.6,"g",5],["Empada, de frango, pré-cozida",377,7.3,35.5,22.9,"g",5],["Frango, asa, com pele, crua",213,18.1,0,15.1,"g",5],["Frango, caipira, inteiro, com pele, cozido",243,23.9,0,15.6,"g",5],["Frango, caipira, inteiro, sem pele, cozido",196,29.6,0,7.7,"g",5],["Frango, coração, cru",222,12.6,0,18.6,"g",5],["Frango, coração, grelhado",207,22.4,0.6,12.1,"g",5],["Frango, coxa, com pele, assada",215,28.5,0.1,10.4,"g",5],["Frango, coxa, com pele, crua",161,17.1,0,9.8,"g",5],["Frango, coxa, sem pele, cozida",167,26.9,0,5.8,"g",5],["Frango, coxa, sem pele, crua",120,17.8,0,4.9,"g",5],["Frango, fígado, cru",106,17.6,0,3.5,"g",5],["Frango, filé, à milanesa",221,28.5,7.5,7.8,"g",5],["Frango, inteiro, com pele, cru",226,16.4,0,17.3,"g",5],["Frango, inteiro, sem pele, assado",187,28.0,0,7.5,"g",5],["Frango, inteiro, sem pele, cozido",170,25.0,0,7.1,"g",5],["Frango, inteiro, sem pele, cru",129,20.6,0,4.6,"g",5],["Frango, peito, com pele, assado",212,33.4,0,7.6,"g",5],["Frango, peito, com pele, cru",149,20.8,0,6.7,"g",5],["Frango, peito, sem pele, cozido",163,31.5,0,3.2,"g",5],["Frango, peito, sem pele, cru",119,21.5,0,3.0,"g",5],["Frango, peito, sem pele, grelhado",159,32.0,0,2.5,"g",5],["Frango, sobrecoxa, com pele, assada",260,28.7,0,15.2,"g",5],["Frango, sobrecoxa, com pele, crua",255,15.5,0,20.9,"g",5],["Frango, sobrecoxa, sem pele, assada",233,29.2,0,12.0,"g",5],["Frango, sobrecoxa, sem pele, crua",162,17.6,0,9.6,"g",5],["Hambúrguer, bovino, cru",215,13.2,4.2,16.2,"g",5],["Hambúrguer, bovino, frito",258,20.0,6.3,17.0,"g",5],["Hambúrguer, bovino, grelhado",210,13.2,11.3,12.4,"g",5],["Lingüiça, frango, crua",218,14.2,0,17.4,"g",5],["Lingüiça, frango, frita",245,18.3,0,18.5,"g",5],["Lingüiça, frango, grelhada",244,18.2,0,18.4,"g",5],["Lingüiça, porco, crua",227,16.1,0,17.6,"g",5],["Lingüiça, porco, frita",280,20.5,0,21.3,"g",5],["Lingüiça, porco, grelhada",296,23.2,0,21.9,"g",5],["Mortadela",269,12.0,5.8,21.6,"g",5],["Peru, congelado, assado",163,26.2,0,5.7,"g",5],["Peru, congelado, cru",94,18.1,0,1.8,"g",5],["Porco, bisteca, crua",164,21.5,0,8.0,"g",5],["Porco, bisteca, frita",311,33.7,0,18.5,"g",5],["Porco, bisteca, grelhada",280,28.9,0,17.4,"g",5],["Porco, costela, assada",402,30.2,0,30.3,"g",5],["Porco, costela, crua",256,18.0,0,19.8,"g",5],["Porco, lombo, assado",210,35.7,0,6.4,"g",5],["Porco, lombo, cru",176,22.6,0,8.8,"g",5],["Porco, orelha, salgada, crua",258,18.5,0,19.9,"g",5],["Porco, pernil, assado",262,32.1,0,13.9,"g",5],["Porco, pernil, cru",186,20.1,0,11.1,"g",5],["Porco, rabo, salgado, cru",377,15.6,0,34.5,"g",5],["Presunto, com capa de gordura",128,14.4,1.4,6.8,"g",5],["Presunto, sem capa de gordura",94,14.3,2.1,2.7,"g",5],["Quibe, assado",136,14.6,12.9,2.7,"g",5],["Quibe, cru",109,12.4,10.8,1.7,"g",5],["Quibe, frito",254,14.9,12.3,15.8,"g",5],["Salame",398,25.8,2.9,30.6,"g",5],["Toucinho, cru",593,11.5,0,60.3,"g",5],["Toucinho, frito",697,27.3,0,64.3,"g",5],["Bebida láctea, pêssego",55,2.1,7.6,1.9,"g",6],["Creme de Leite",221,1.5,4.5,22.5,"g",6],["Iogurte, natural",51,4.1,1.9,3.0,"g",6],["Iogurte, natural, desnatado",41,3.8,5.8,0.3,"g",6],["Iogurte, sabor morango",70,2.7,9.7,2.3,"g",6],["Iogurte, sabor pêssego",68,2.5,9.4,2.3,"g",6],["Leite, condensado",313,7.7,57.0,6.7,"g",6],["Leite, de cabra",66,3.1,5.2,3.8,"g",6],["Leite, de vaca, achocolatado",83,2.1,14.2,2.2,"ml",6],["Leite, de vaca, desnatado, pó",362,34.7,53.0,0.9,"g",6],["Leite, de vaca, integral, pó",497,25.4,39.2,26.9,"g",6],["Leite, fermentado",70,1.9,15.7,0.1,"g",6],["Queijo, minas, frescal",264,17.4,3.2,20.2,"g",6],["Queijo, minas, meia cura",321,21.2,3.6,24.6,"g",6],["Queijo, mozarela",330,22.6,3.0,25.2,"g",6],["Queijo, parmesão",453,35.6,1.7,33.5,"g",6],["Queijo, pasteurizado",303,9.4,5.7,27.4,"g",6],["Queijo, petit suisse, morango",121,5.8,18.5,2.8,"g",6],["Queijo, prato",360,22.7,1.9,29.1,"g",6],["Queijo, requeijão, cremoso",257,9.6,2.4,23.4,"g",6],["Queijo, ricota",140,12.6,3.8,8.1,"g",6],["Bebida isotônica, sabores variados",26,0,6.4,0,"ml",7],["Café, infusão 10%",9,0.7,1.5,0.1,"ml",7],["Cana, aguardente 1",216,0,0,0,"ml",7],["Cana, caldo de",65,0,18.2,0,"ml",7],["Cerveja, pilsen 2",41,0.6,3.3,0,"ml",7],["Chá, erva-doce, infusão 5%",1,0,0.4,0,"ml",7],["Chá, mate, infusão 5%",3,0,0.6,0.1,"ml",7],["Chá, preto, infusão 5%",2,0,0.6,0,"ml",7],["Coco, água de",22,0,5.3,0,"ml",7],["Refrigerante, tipo água tônica",31,0,8.0,0,"ml",7],["Refrigerante, tipo cola",34,0,8.7,0,"ml",7],["Refrigerante, tipo guaraná",39,0,10.0,0,"ml",7],["Refrigerante, tipo laranja",46,0,11.8,0,"ml",7],["Refrigerante, tipo limão",40,0,10.3,0,"ml",7],["Omelete, de queijo",268,15.6,0.4,22.0,"g",8],["Ovo, de codorna, inteiro, cru",177,13.7,0.8,12.7,"g",8],["Ovo, de galinha, clara, cozida/10minutos",59,13.4,0,0.1,"g",8],["Ovo, de galinha, gema, cozida/10minutos",353,15.9,1.6,30.8,"g",8],["Ovo, de galinha, inteiro, cozido/10minutos",146,13.3,0.6,9.5,"g",8],["Ovo, de galinha, inteiro, cru",143,13.0,1.6,8.9,"g",8],["Ovo, de galinha, inteiro, frito",240,15.6,1.2,18.6,"g",8],["Achocolatado, pó",401,4.2,91.2,2.2,"g",9],["Açúcar, cristal",387,0.3,99.6,0,"g",9],["Açúcar, mascavo",369,0.8,94.5,0.1,"g",9],["Açúcar, refinado",387,0.3,99.5,0,"g",9],["Chocolate, ao leite",540,7.2,59.6,30.3,"g",9],["Chocolate, ao leite, com castanha do Pará",559,7.4,55.4,34.2,"g",9],["Chocolate, ao leite, dietético",557,6.9,56.3,33.8,"g",9],["Chocolate, meio amargo",475,4.9,62.4,29.9,"g",9],["Cocada branca",449,1.1,81.4,13.6,"g",9],["Doce, de abóbora, cremoso",199,0.9,54.6,0.2,"g",9],["Doce, de leite, cremoso",306,5.5,59.5,6.0,"g",9],["Geléia, mocotó, natural",106,2.1,24.2,0.1,"g",9],["Glicose de milho",292,0,79.4,0,"g",9],["Maria mole",301,3.8,73.6,0.2,"g",9],["Maria mole, coco queimado",307,3.9,75.1,0.1,"g",9],["Marmelada",257,0.4,70.8,0.1,"g",9],["Mel, de abelha",309,0,84.0,0,"g",9],["Melado",297,0,76.6,0,"g",9],["Quindim",411,4.7,46.3,24.4,"g",9],["Rapadura",352,1.0,90.8,0.1,"g",9],["Café, pó, torrado",419,14.7,65.8,11.9,"g",10],["Capuccino, pó",417,11.3,73.6,8.6,"g",10],["Fermento em pó, químico",90,0.5,43.9,0.1,"g",10],["Fermento, biológico, levedura, tablete",90,17.0,7.7,1.5,"g",10],["Gelatina, sabores variados, pó",380,8.9,89.2,0,"g",10],["Shoyu",61,3.3,11.6,0.3,"g",10],["Tempero a base de sal",21,2.7,2.1,0.3,"g",10],["Azeitona, preta, conserva",194,1.2,5.5,20.3,"g",11],["Azeitona, verde, conserva",137,0.9,4.1,14.2,"g",11],["Chantilly, spray, com gordura vegetal",315,0.5,16.9,27.3,"g",11],["Leite, de coco",166,1.0,2.2,18.4,"g",11],["Maionese, tradicional com ovos",302,0.6,7.9,30.5,"g",11],["Acarajé",289,8.3,19.1,19.9,"g",12],["Arroz carreteiro",154,10.8,11.6,7.1,"g",12],["Baião de dois, arroz e feijão-de-corda",136,6.2,20.4,3.2,"g",12],["Barreado",165,18.3,0.2,9.5,"g",12],["Bife à cavalo, com contra filé",291,23.7,0,21.1,"g",12],["Bolinho de arroz",274,8.0,41.7,8.3,"g",12],["Camarão à baiana",101,7.9,3.2,6.0,"g",12],["Charuto, de repolho",78,6.8,10.1,1.1,"g",12],["Cuscuz, de milho, cozido com sal",113,2.2,25.3,0.7,"g",12],["Cuscuz, paulista",142,2.6,22.5,4.6,"g",12],["Cuxá, molho",80,5.6,5.7,3.6,"g",12],["Dobradinha",125,19.8,0,4.4,"g",12],["Estrogonofe de carne",173,15.0,3.0,10.8,"g",12],["Estrogonofe de frango",157,17.6,2.6,8.0,"g",12],["Feijão tropeiro mineiro",152,10.2,19.6,6.8,"g",12],["Feijoada",117,8.7,11.6,6.5,"g",12],["Frango, com açafrão",113,9.7,4.1,6.2,"g",12],["Macarrão, molho bolognesa",120,4.9,22.5,0.9,"g",12],["Maniçoba",134,10.0,3.4,8.7,"g",12],["Quibebe",86,8.6,6.6,2.7,"g",12],["Salada, de legumes, com maionese",96,1.1,8.9,7.0,"g",12],["Salada, de legumes, cozida no vapor",35,2.0,7.1,0.3,"g",12],["Salpicão, de frango",148,13.9,4.6,7.8,"g",12],["Sarapatel",123,18.5,1.1,4.4,"g",12],["Tabule",57,2.0,10.6,1.2,"g",12],["Tacacá",47,7.0,3.4,0.4,"g",12],["Tapioca, com manteiga",348,0.1,63.6,10.9,"g",12],["Tucupi, com pimenta-de-cheiro",27,2.1,4.7,0.3,"g",12],["Vaca atolada",145,5.1,10.1,9.3,"g",12],["Vatapá",255,6.0,9.7,23.2,"g",12],["Virado à paulista",307,10.2,14.1,25.6,"g",12],["Yakisoba",113,7.5,18.3,2.6,"g",12],["Amendoim, grão, cru",544,27.2,20.3,43.9,"g",13],["Amendoim, torrado, salgado",606,22.5,18.7,54.0,"g",13],["Ervilha, em vagem",88,7.5,14.2,0.5,"g",13],["Ervilha, enlatada, drenada",74,4.6,13.4,0.4,"g",13],["Feijão, carioca, cozido",76,4.8,13.6,0.5,"g",13],["Feijão, carioca, cru",329,20.0,61.2,1.3,"g",13],["Feijão, fradinho, cozido",78,5.1,13.5,0.6,"g",13],["Feijão, fradinho, cru",339,20.2,61.2,2.4,"g",13],["Feijão, jalo, cozido",93,6.1,16.5,0.5,"g",13],["Feijão, jalo, cru",328,20.1,61.5,0.9,"g",13],["Feijão, preto, cozido",77,4.5,14.0,0.5,"g",13],["Feijão, preto, cru",324,21.3,58.8,1.2,"g",13],["Feijão, rajado, cozido",85,5.5,15.3,0.4,"g",13],["Feijão, rajado, cru",326,17.3,62.9,1.2,"g",13],["Feijão, rosinha, cozido",68,4.5,11.8,0.5,"g",13],["Feijão, rosinha, cru",337,20.9,62.2,1.3,"g",13],["Feijão, roxo, cozido",77,5.7,12.9,0.5,"g",13],["Feijão, roxo, cru",331,22.2,60.0,1.2,"g",13],["Grão-de-bico, cru",355,21.2,57.9,5.4,"g",13],["Guandu, cru",344,19.0,64.0,2.1,"g",13],["Lentilha, cozida",93,6.3,16.3,0.5,"g",13],["Lentilha, crua",339,23.2,62.0,0.8,"g",13],["Paçoca, amendoim",487,16.0,52.4,26.1,"g",13],["Pé-de-moleque, amendoim",503,13.2,54.7,28.0,"g",13],["Soja, farinha",404,36.0,38.4,14.6,"g",13],["Soja, extrato solúvel, natural, fluido",39,2.4,4.3,1.6,"g",13],["Soja, extrato solúvel, pó",459,35.7,28.5,26.2,"g",13],["Soja, queijo (tofu)",64,6.6,2.1,4.0,"g",13],["Tremoço, cru",381,33.6,43.8,10.3,"g",13],["Tremoço, em conserva",121,11.1,12.4,3.8,"g",13],["Amêndoa, torrada, salgada",581,18.6,29.5,47.3,"g",14],["Castanha-de-caju, torrada, salgada",570,18.5,29.1,46.3,"g",14],["Castanha-do-Brasil, crua",643,14.5,15.1,63.5,"g",14],["Coco, cru",406,3.7,10.4,42.0,"g",14],["Farinha, de mesocarpo de babaçu, crua",329,1.4,79.2,0.2,"g",14],["Gergelim, semente",584,21.2,21.6,50.4,"g",14],["Linhaça, semente",495,14.1,43.3,32.3,"g",14],["Pinhão, cozido",174,3.0,43.9,0.7,"g",14],["Pupunha, cozida",219,2.5,29.6,12.8,"g",14],["Noz, crua",620,14.0,18.4,59.4,"g",14]];
 const TACO_FOODS=TACO.map((r,i)=>({id:"t"+i,name:r[0],kcal:r[1],p:r[2],c:r[3],f:r[4],unit:r[5],per:100,portions:[],builtin:true,src:"TACO",cat:TACO_CATS[r[6]]}));
-const BASE=COMMON.concat(TACO_FOODS);
 
 /* ---------- utils ---------- */
 const $=s=>document.querySelector(s);
@@ -444,6 +460,54 @@ const num=v=>{if(v==null)return null;const s=String(v).trim().replace(",",".");i
 const uid=()=>(crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)).replace(/[^a-zA-Z0-9-]/g,"");
 const fmtDate=(k,opts)=>parseKey(k).toLocaleDateString("pt-BR",opts||{weekday:"long",day:"numeric",month:"long"});
 const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+
+/* ---------- pratos preparados ---------- */
+// USDA FoodData Central (SR Legacy), via TempoLife (tempolife.app), CC-BY-4.0. Nomes traduzidos; valores por 100 g.
+const USDA=[["Tilápia, filé, crua",96,20.1,0,1.7,"g",4],["Siri/caranguejo, cozido",83,17.9,0.0,0.7,"g",4],["Camarão, cozido",99,24.0,0.2,0.3,"g",4],["Camarão, empanado e frito",242,21.4,11.5,12.3,"g",4],["Lagosta, cozida",143,26.4,3.1,1.9,"g",4],["Bagre, empanado e frito",229,18.1,8.0,13.3,"g",4],["Bagre, assado",144,18.4,0.0,7.2,"g",4],["Bacalhau fresco (não salgado), assado",105,22.8,0.0,0.9,"g",4],["Corvina, empanada e frita",221,18.2,7.5,12.7,"g",4],["Iscas de peixe empanadas congeladas, assadas",277,11.0,21.7,16.2,"g",4],["Linguado, assado",86,15.2,0.0,2.4,"g",4],["Garoupa, assada",118,24.8,0.0,1.3,"g",4],["Hadoque, assado",90,20.0,0.0,0.6,"g",4],["Cavala, assada",262,23.9,0.0,17.8,"g",4],["Dourado-do-mar (mahi-mahi), assado",109,23.7,0.0,0.9,"g",4],["Tainha, assada",150,24.8,0.0,4.9,"g",4],["Polaca (escamudo), assada",118,24.9,0.0,1.3,"g",4],["Salmão de cativeiro, assado/grelhado",206,22.1,0.0,12.4,"g",4],["Salmão selvagem, assado/grelhado",182,25.4,0.0,8.1,"g",4],["Robalo, assado",124,23.6,0.0,2.6,"g",4],["Cação, empanado na massa e frito",228,18.6,6.4,13.8,"g",4],["Pargo (vermelho), assado",128,26.3,0.0,1.7,"g",4],["Peixe-espada (espadarte), assado",172,23.5,0.0,7.9,"g",4],["Tilápia, assada/grelhada",128,26.2,0.0,2.7,"g",4],["Truta, assada",168,23.8,0.0,7.4,"g",4],["Atum fresco, grelhado",130,29.2,0.0,0.6,"g",4],["Vôngole, empanado e frito",202,14.2,10.3,11.2,"g",4],["Vôngole, cozido",148,25.6,5.1,2.0,"g",4],["Mexilhão, cozido",172,23.8,7.4,4.5,"g",4],["Polvo, cozido",164,29.8,4.4,2.1,"g",4],["Ostra, empanada e frita",199,8.8,11.6,12.6,"g",4],["Ostra, cozida",163,18.9,9.9,4.6,"g",4],["Vieira, cozida no vapor",111,20.5,5.4,0.8,"g",4],["Vieira, empanada e frita",216,18.1,10.1,10.9,"g",4],["Lula, frita (à dorê)",175,17.9,7.8,7.5,"g",4],["Filé de peixe empanado e frito (restaurante)",219,13.5,16.9,10.8,"g",4],["Camarão empanado e frito (restaurante)",308,12.7,22.3,18.7,"g",4],["Batata gratinada caseira",134,5.1,11.3,7.6,"g",12],["Batata palito congelada, assada no forno",147,2.2,24.8,4.7,"g",1],["Batata frita (fast food)",312,3.4,41.4,14.7,"g",1],["Batata frita (restaurante)",289,3.5,37.2,14.0,"g",1],["Batata rösti caseira",265,3.0,35.1,12.5,"g",1],["Purê de batata com leite",83,1.9,17.6,0.6,"g",12],["Purê de batata com leite e manteiga",113,1.9,16.8,4.2,"g",12],["Batata assada com casca",95,2.6,21.4,0.1,"g",1],["Batata-doce, cozida sem casca",76,1.4,17.7,0.1,"g",1],["Batata-doce, assada com casca",90,2.0,20.7,0.2,"g",1],["Batata-doce caramelada",164,0.9,32.1,3.5,"g",12],["Brócolis, cozido",35,2.4,7.2,0.4,"g",1],["Couve-flor, cozida",23,1.8,4.1,0.5,"g",1],["Cebola, cozida",44,1.4,10.2,0.2,"g",1],["Shiitake, cozido",56,1.6,14.4,0.2,"g",1],["Tofu frito",270,18.8,8.9,20.2,"g",13],["Frango, peito com pele, empanado na massa e frito",260,24.8,9.0,13.2,"g",5],["Frango, peito com pele, frito na farinha",222,31.8,1.6,8.9,"g",5],["Frango, peito sem pele, frito",187,33.4,0.5,4.7,"g",5],["Frango, peito sem pele, assado",165,31.0,0.0,3.6,"g",5],["Frango, peito sem pele, cozido",151,29.0,0.0,3.0,"g",5],["Frango, tiras empanadas, assadas",252,16.4,17.6,12.9,"g",5],["Frango, coxa com pele, empanada e frita",268,22.0,8.3,15.8,"g",5],["Frango, coxa com pele, assada",191,23.4,0.0,10.2,"g",5],["Frango, sobrecoxa com pele, empanada e frita",277,21.6,9.1,16.5,"g",5],["Frango, sobrecoxa com pele, assada",232,23.3,0.0,14.7,"g",5],["Frango, sobrecoxa sem pele, assada",179,24.8,0.0,8.2,"g",5],["Frango, asa, frita na farinha",321,26.1,2.4,22.2,"g",5],["Frango, asa, empanada na massa e frita",324,19.9,10.9,21.8,"g",5],["Frango, asa, assada",254,23.8,0.0,16.9,"g",5],["Frango com pele, empanado na massa e frito",289,22.5,9.4,17.4,"g",5],["Frango com pele, frito na farinha de trigo",269,28.6,3.2,14.9,"g",5],["Frango sem pele, frito",219,30.6,1.7,9.1,"g",5],["Frango sem pele, cozido/ensopado",177,27.3,0.0,6.7,"g",5],["Hambúrguer de frango empanado, pronto",287,14.9,12.8,19.6,"g",5],["Nuggets de frango",268,12.0,16.1,17.3,"g",5],["Frango empanado congelado (tiras), assado",240,14.6,14.9,13.6,"g",5],["Frango frito estilo fast food, peito com pele e empanado",230,23.5,6.0,12.4,"g",5],["Pele e empanado de frango frito",398,14.1,19.6,29.2,"g",5],["Tiras de frango empanadas (fast food)",271,19.2,17.3,14.0,"g",5],["Carne de porco moída, refogada",297,25.7,0.0,20.8,"g",5],["Porco, filé mignon suíno, assado",143,26.2,0.0,3.5,"g",5],["Porco, lombo, assado",204,28.6,0.0,9.1,"g",5],["Porco, costelinha, assada",361,20.9,0.0,30.9,"g",5],["Porco, costelinha, cozida",397,29.1,0.0,30.3,"g",5],["Bife de alcatra grelhado (restaurante)",195,29.8,0.0,8.5,"g",5],["Ovo frito",196,13.6,0.8,14.8,"g",8],["Ovo cozido",155,12.6,1.1,10.6,"g",8],["Omelete simples",154,10.6,0.6,11.7,"g",8],["Ovo pochê",143,12.5,0.7,9.5,"g",8],["Ovo mexido",149,10.0,1.6,11.0,"g",8],["Banana-da-terra verde, cozida",121,1.1,29.2,0.1,"g",2],["Banana-da-terra verde, frita",309,1.5,49.2,11.8,"g",2],["Banana-da-terra madura, assada",155,1.5,41.4,0.2,"g",2],["Banana-da-terra madura, frita",236,1.4,40.8,7.5,"g",2],["Macarrão com ovos, cozido",138,4.5,25.2,2.1,"g",0],["Macarrão, cozido",158,5.8,30.9,0.9,"g",0],["Macarrão integral, cozido",149,6.0,30.1,1.7,"g",0],["Massa caseira com ovo, cozida",130,5.3,23.5,1.7,"g",0],["Macarrão de arroz, cozido",108,1.8,24.0,0.2,"g",0],["Rolinho primavera de legumes, assado",214,6.0,31.8,7.0,"g",12],["Rolinho primavera (restaurante chinês)",250,8.3,27.3,11.9,"g",12],["Arroz frito chinês, sem carne",174,4.1,32.8,3.0,"g",12],["Frango General Tso (chinês)",295,12.9,24.0,16.4,"g",12],["Frango agridoce (chinês)",250,10.1,23.9,12.7,"g",12],["Porco agridoce (chinês)",270,8.9,23.3,15.7,"g",12],["Frango à laranja (chinês)",262,14.5,22.5,12.7,"g",12],["Yakisoba de legumes",121,4.8,20.2,2.4,"g",12],["Frango com legumes (chinês)",95,8.2,5.4,4.6,"g",12],["Carne com legumes (chinês)",105,7.1,7.3,5.3,"g",12],["Ravióli de queijo ao molho de tomate",154,7.1,18.5,5.7,"g",12],["Frango à parmegiana, sem macarrão",204,16.2,10.9,10.6,"g",12],["Lasanha à bolonhesa",185,10.8,11.4,10.7,"g",12],["Espaguete à bolonhesa",121,5.8,16.4,3.6,"g",12],["Espaguete ao sugo",104,3.9,17.8,1.9,"g",12],["Espaguete com almôndegas",170,7.8,15.5,8.5,"g",12],["Macarrão com queijo (mac and cheese)",151,5.4,18.8,6.1,"g",12],["Palitos de muçarela empanados e fritos",325,14.8,25.1,18.3,"g",12],["Anéis de cebola empanados",356,4.9,40.7,19.3,"g",12],["Salada de repolho com maionese",159,0.9,12.4,11.8,"g",12],["Chili com carne e feijão",157,12.6,4.6,9.8,"g",12],["Arroz com feijão-preto",151,4.6,24.4,3.9,"g",12],["Arroz com feijão-vermelho",142,4.0,23.7,3.5,"g",12],["Arroz com frango",174,12.0,20.0,5.1,"g",12],["Empanada de carne (salgado)",335,11.3,31.2,18.4,"g",12],["Feijão refrito (mexicano)",156,6.9,16.8,6.8,"g",12],["Taco mole de carne com queijo",219,12.6,17.9,10.8,"g",12],["Taco crocante de carne com queijo",226,8.9,19.9,12.7,"g",12],["Enchilada de queijo",273,11.2,15.5,18.5,"g",12],["Quesadilla de queijo",368,15.9,24.1,23.1,"g",12],["Quesadilla de frango",294,15.1,24.0,15.3,"g",12],["Burrito de feijão e carne",191,11.5,19.5,7.5,"g",12],["Nachos com queijo",343,4.3,34.9,21.5,"g",12],["Hambúrguer simples com molhos (fast food)",263,13.3,29.6,10.2,"g",12],["Cheeseburger simples (fast food)",270,13.5,25.5,12.9,"g",12],["Cheeseburger duplo (fast food)",282,16.2,18.0,16.2,"g",12],["Sanduíche de frango empanado com alface e maionese",276,10.9,27.4,13.6,"g",12],["Sanduíche de frango grelhado",182,17.3,16.8,4.6,"g",12],["Sanduíche de peixe empanado com molho tártaro",257,10.3,26.7,12.5,"g",12],["McDonald's, Cheeseburger",263,13.0,27.8,11.8,"g",12],["McDonald's, Hambúrguer",264,12.9,30.3,10.1,"g",12],["McDonald's, McChicken",273,10.4,28.0,13.2,"g",12],["McDonald's, Chicken McNuggets",302,15.8,15.1,19.8,"g",12],["Burger King, Whopper",233,10.7,18.6,12.8,"g",12],["Burger King, Whopper com queijo",250,11.2,16.7,15.3,"g",12],["Burger King, batata frita",280,3.2,38.7,12.5,"g",12],["KFC, peito de frango Original Recipe",231,21.9,6.3,13.1,"g",12],["KFC, peito de frango Extra Crispy",268,21.2,8.5,16.6,"g",12],["Pizza Hut, pizza de queijo",275,12.0,33.4,10.4,"g",12],["Pizza Hut, pizza de pepperoni",291,12.2,32.1,12.6,"g",12],["Pizza de queijo (pizzaria)",266,11.4,33.3,9.7,"g",12],["Pizza de pepperoni (pizzaria)",282,11.7,32.0,11.9,"g",12],["Pizza de carne e legumes (pizzaria)",244,11.0,25.4,10.9,"g",12],["Pizza congelada de queijo, assada",268,10.4,29.0,12.3,"g",12],["Pizza congelada de pepperoni, assada",274,14.4,24.7,13.1,"g",12],["Torta de frango congelada, assada",204,5.1,19.2,11.9,"g",12],["Salsicha empanada no palito (corn dog)",250,8.6,27.0,12.0,"g",12],["Sanduíche de frios no pão branco (Subway)",213,10.5,20.4,10.0,"g",12],["Sanduíche de peito de peru no pão branco (Subway)",147,9.1,22.4,2.3,"g",12],["Subway, sanduíche de frango assado",157,10.8,21.4,3.2,"g",12],["Sundae de caramelo",196,4.7,31.8,6.0,"g",9],["Sundae de chocolate",180,3.6,30.2,5.5,"g",9],["Casquinha de baunilha",163,4.2,26.4,4.9,"g",9],["Milk-shake de baunilha",168,3.2,19.0,8.7,"g",9],["Arroz-doce",146,3.2,24.9,3.7,"g",9]];
+const USDA_FOODS=USDA.map((r,i)=>({id:"us"+i,name:r[0],kcal:r[1],p:r[2],c:r[3],f:r[4],unit:r[5],per:100,portions:[],builtin:true,src:"USDA",cat:TACO_CATS[r[6]]}));
+// Cálculo de preparo, por 100 g do alimento CRU: rend = peso pronto / peso cru (%), oleo = g de óleo absorvido, emp = g de cada ingrediente do empanamento.
+const ING={rosca:["Farinha de rosca",371,11.4,75.8,1.5],ovo:["Ovo",143,13,1.6,8.9],trigo:["Farinha de trigo",360,9.8,75.1,1.4]};
+const PREP=[
+  {k:"grelhado",nm:"Grelhado ou assado",emo:"🔥",rend:75,oleo:0,emp:{},m:"grelhado",f:"grelhada"},
+  {k:"azeite",nm:"Grelhado com fio de óleo",emo:"🫒",rend:75,oleo:3,emp:{},m:"grelhado com óleo",f:"grelhada com óleo"},
+  {k:"cozido",nm:"Cozido ou ensopado",emo:"🍲",rend:80,oleo:0,emp:{},m:"cozido",f:"cozida"},
+  {k:"refogado",nm:"Refogado",emo:"🥘",rend:80,oleo:4,emp:{},m:"refogado",f:"refogada"},
+  {k:"frito",nm:"Frito sem empanar",emo:"🍳",rend:70,oleo:8,emp:{},m:"frito",f:"frita"},
+  {k:"farinha",nm:"Frito na farinha de trigo",emo:"🌾",rend:70,oleo:8,emp:{trigo:4},m:"frito na farinha de trigo",f:"frita na farinha de trigo"},
+  {k:"empanado",nm:"Empanado e frito (milanesa)",emo:"🍤",rend:80,oleo:12,emp:{rosca:8,ovo:5,trigo:2},m:"empanado e frito",f:"empanada e frita"},
+  {k:"airfryer",nm:"Empanado na air fryer ou forno",emo:"💨",rend:80,oleo:2,emp:{rosca:8,ovo:5,trigo:2},m:"empanado na air fryer",f:"empanada na air fryer"},
+  {k:"imersao",nm:"Batata ou legume frito",emo:"🍟",rend:40,oleo:6,emp:{},m:"frito",f:"frita"}
+];
+function cookCalc(b,o){
+  const t={kcal:b.kcal,p:b.p,c:b.c,f:b.f},parts=[]; let empG=0;
+  Object.keys(ING).forEach(k=>{const g=+(o.emp||{})[k]||0;if(!g)return;const v=ING[k];empG+=g;t.kcal+=v[1]*g/100;t.p+=v[2]*g/100;t.c+=v[3]*g/100;t.f+=v[4]*g/100;parts.push([v[0],g,v[1]*g/100])});
+  const ol=+o.oleo||0; if(ol){t.kcal+=ol*8.84;t.f+=ol;parts.push(["Óleo absorvido",ol,ol*8.84])}
+  const peso=Math.max(1,(100+empG)*(o.rend||100)/100+ol), k=100/peso;
+  return {kcal:t.kcal*k,p:t.p*k,c:t.c*k,f:t.f*k,peso,parts,total:t.kcal};
+}
+const prepBaseName=n=>n.replace(/,\s*(congelad|fresc)[oa]s?\b/gi,"").replace(/,\s*cru[as]{0,2}\s*$/i,"").trim();
+const isFem=n=>/\bcruas?\s*$/i.test(n.trim());
+const prepName=(n,m)=>prepBaseName(n)+", "+(isFem(n)?m.f:m.m);
+// versões prontas geradas pela mesma conta da calculadora
+const CALC_FOODS=(()=>{
+  const raw=TACO_FOODS.concat(USDA_FOODS).filter(f=>/\bcru[as]{0,2}$/.test(norm(f.name))), have=COMMON.concat(TACO_FOODS,USDA_FOODS).map(f=>norm(f.name)), out=[];
+  const plan=[
+    [/^(abadejo|atum, fresco|cacao|corvina|merluza|pescada|pescadinha|pintado|salmao|sardinha|tucunare|tilapia|camarao)/,["empanado","airfryer","farinha","grelhado"]],
+    [/^frango, (peito|coxa|sobrecoxa), sem pele/,["empanado","airfryer","farinha","grelhado"]],
+    [/^carne, bovina, (patinho|coxao mole|contra-file, sem|miolo de alcatra|file mingnon)/,["empanado","airfryer"]],
+    [/^porco, (lombo|bisteca)/,["empanado","airfryer","grelhado"]],
+    [/^(berinjela|abobrinha|couve-flor)/,["empanado","airfryer"]]
+  ];
+  const clash={grelhado:/grelhad|assad/,farinha:/farinha.*frit/,empanado:/empanad|milanesa/,airfryer:/air fryer/,imersao:/frit/};
+  raw.forEach(b=>{const nb=norm(b.name);plan.forEach(([re,ms])=>{if(!re.test(nb))return;ms.forEach(k=>{
+    const m=PREP.find(x=>x.k===k), base=norm(prepBaseName(b.name));
+    if(have.some(h=>h.startsWith(base)&&clash[k].test(h.slice(base.length))))return;
+    const r=cookCalc(b,m);
+    out.push({id:"cx"+out.length,name:prepName(b.name,m),kcal:Math.round(r.kcal),p:Math.round(r.p*10)/10,c:Math.round(r.c*10)/10,f:Math.round(r.f*10)/10,unit:"g",per:100,portions:[],builtin:true,src:"Calc",cat:b.cat,from:b.name,method:k});
+  })})});
+  return out;
+})();
+const BASE=COMMON.concat(TACO_FOODS,USDA_FOODS,CALC_FOODS);
 
 /* ---------- state & storage ---------- */
 const ANON_KEY="contador.v1";
@@ -802,12 +866,12 @@ function viewFoods(){
   <section class="card">${foods.length?`<ul class="food-list">${foods.map(f=>`<li><div class="food-row"><div class="grow"><div style="font-weight:700">${esc(f.name)}</div>
     <div class="muted" style="font-size:13px">${f.unit==="porção"?"1 porção":"100 "+esc(f.unit)}: ${fmt0(f.kcal)} kcal · P ${fmt1(f.p)} · C ${fmt1(f.c)} · G ${fmt1(f.f)}</div></div>
     <button class="btn small danger" data-act="delFood" data-id="${esc(f.id)}">Excluir</button></div></li>`).join("")}</ul>`
-    :`<p class="muted" style="padding:16px;margin:0">Você ainda não cadastrou alimentos. A busca já traz ${BASE.length} alimentos: a tabela TACO completa (${TACO_FOODS.length} itens, Unicamp) e ${COMMON.length} itens comuns com porções caseiras.</p>`}</section>`;
+    :`<p class="muted" style="padding:16px;margin:0">Você ainda não cadastrou alimentos. A busca já traz ${BASE.length} alimentos: a tabela TACO completa (${TACO_FOODS.length} itens, Unicamp), ${USDA_FOODS.length} pratos prontos da USDA, ${CALC_FOODS.length} versões empanadas, fritas e grelhadas calculadas e ${COMMON.length} itens comuns com porções caseiras. Para criar um alimento pronto, toque em + numa refeição e use as abas Preparo ou Receita.</p>`}<p class="muted" style="padding:12px 16px 16px;margin:0;font-size:12px">Fontes: TACO 4ª ed. (NEPA/Unicamp); USDA FoodData Central SR Legacy (dados via TempoLife, tempolife.app, CC-BY-4.0); produtos de marca do Open Food Facts (ODbL). Itens “calculado” usam fatores médios de rendimento e absorção de óleo.</p></section>`;
 }
 
 /* ---------- sheet (adicionar / editar) ---------- */
 let sh=null;
-function openAdd(meal){sh={mode:"add",meal,tab:"buscar",q:"",food:null,qty:"",editId:null,man:{name:"",qtyText:"",kcal:"",p:"",c:"",f:"",save:false}};drawSheet();focusFirst()}
+function openAdd(meal){sh={mode:"add",meal,tab:"buscar",q:"",food:null,qty:"",editId:null,prep:prepState(),rec:recState(),off:null,man:{name:"",qtyText:"",kcal:"",p:"",c:"",f:"",save:false}};drawSheet();focusFirst()}
 function openEdit(id){
   const it=dayItems(ui.date).find(i=>i.id===id); if(!it) return;
   sh={mode:"edit",meal:it.meal,editId:id,q:"",tab:it.base?"buscar":"manual",food:it.base?Object.assign({name:it.name,portions:[]},it.base):null,qty:it.base?String(it.qty).replace(".",","):"",
@@ -821,7 +885,7 @@ function drawSheet(){
   $("#sheetWrap").hidden=false;document.body.style.overflow="hidden";
   const title=(sh.mode==="edit"?"Editar em ":"Adicionar em ")+MEAL_NAME[sh.meal]+(ui.date===todayKey()?"":" · "+cap(dayWord(ui.date).split(",")[0]));
   let body="";
-  if(sh.mode==="add") body+=`<div class="seg" role="group"><button data-act="shTab" data-t="buscar" aria-pressed="${sh.tab==="buscar"}">Buscar alimento</button><button data-act="shTab" data-t="manual" aria-pressed="${sh.tab==="manual"}">Digitar valores</button></div>`;
+  if(sh.mode==="add") body+=`<div class="seg" role="group">${[["buscar","🔎 Buscar"],["preparo","🍳 Preparo"],["receita","🥣 Receita"],["manual","✏️ Digitar"]].map(([t,l])=>`<button data-act="shTab" data-t="${t}" aria-pressed="${sh.tab===t}">${l}</button>`).join("")}</div>`;
   if(sh.tab==="buscar"){
     if(sh.food){
       const f=sh.food;
@@ -833,9 +897,13 @@ function drawSheet(){
         <button class="btn primary" style="width:100%" data-act="shSave">${sh.mode==="edit"?"Salvar alterações":"Adicionar"}</button>`;
     } else {
       body+=`<div class="field"><label for="sh-q" class="label" style="font-size:11.5px">Buscar</label><input class="input" id="sh-q" type="search" placeholder="ex.: arroz cozido, frango peito, banana" value="${esc(sh.q)}" autocomplete="off"></div>
-        <p class="muted" style="font-size:12.5px;margin:6px 0 0">${BASE.length} alimentos: tabela TACO (Unicamp) e itens comuns com porções caseiras.</p>
+        <p class="muted" style="font-size:12.5px;margin:6px 0 0">${BASE.length} alimentos: TACO (Unicamp), pratos prontos da USDA, versões empanadas, fritas e grelhadas calculadas e itens comuns. Não achou o preparo? Use a aba Preparo ou Receita.</p>
         <ul class="result-list" id="sh-results"></ul>`;
     }
+  } else if(sh.tab==="preparo"){
+    body+=prepBody();
+  } else if(sh.tab==="receita"){
+    body+=recBody();
   } else {
     const m=sh.man;
     body+=`<div class="form-grid">
@@ -854,27 +922,152 @@ function drawSheet(){
   $("#sheet").innerHTML=`<div class="sheet-head"><span class="meal-emo m-${sh.meal}" aria-hidden="true">${MEAL_EMOJI[sh.meal]}</span><h2>${esc(title)}</h2><button class="icon-btn" data-act="shClose" aria-label="Fechar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="sheet-body">${body}</div>`;
   if(sh.tab==="buscar"&&!sh.food) drawResults();
   if(sh.tab==="buscar"&&sh.food) drawPreview();
+  if(sh.tab==="preparo"){if(sh.prep.base)drawPrepOut();else drawFoodList("#pr-results",sh.prep.q,"prPick",f=>f.unit==="g",true)}
+  if(sh.tab==="receita"){drawFoodList("#rc-results",sh.rec.q,"rcPick",f=>f.unit!=="porção",false);drawRecOut()}
+}
+function rankFoods(q,list,preferRaw){
+  if(!q) return list;
+  const parts=q.split(/\s+/);
+  list=list.filter(f=>{const n=norm(f.name);return parts.every(p=>n.includes(p))});
+  const score=f=>{const n=norm(f.name);let sc=f.builtin?0:-100;if(n.startsWith(parts[0]))sc-=20;else if(new RegExp("(^|[\\s,(/])"+parts[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(n))sc-=10;if(f.src==="Comum")sc-=5;if(f.src==="Calc")sc+=1;const raw=/\bcru[as]{0,2}\b/.test(n);if(preferRaw)sc+=raw?-8:4;else if(raw)sc+=3;return sc+n.length/100};
+  return list.map(f=>[score(f),f]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+}
+const SRC_TAG={TACO:"TACO",USDA:"USDA",Calc:"CALCULADO",OFF:"OPEN FOOD FACTS"};
+function foodRow(f,act){return `<li><button class="result" data-act="${act}" data-id="${esc(f.id)}"><span class="food-emo" aria-hidden="true">${foodEmoji(f.name)}</span><div class="grow"><div class="nm">${esc(f.name)}${f.builtin===false?'<span class="tag">meu</span>':""}</div>
+    <div class="mt">${SRC_TAG[f.src]?'<span class="src">'+SRC_TAG[f.src]+'</span> ':""}${f.unit==="porção"?"1 porção":"100 "+esc(f.unit)} · ${fmt0(f.kcal)} kcal · P ${fmt1(f.p)} · C ${fmt1(f.c)} · G ${fmt1(f.f)}</div></div>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="color:var(--muted)"><path d="M9 5l7 7-7 7"/></svg></button></li>`}
+function drawFoodList(sel,q0,act,filter,preferRaw){
+  const el=$(sel); if(!el) return;
+  const q=norm((q0||"").trim());
+  if(!q){el.innerHTML="";return}
+  const list=rankFoods(q,allFoods().filter(filter),preferRaw).slice(0,act==="rcPick"?8:40);
+  el.innerHTML=list.length?list.map(f=>foodRow(f,act)).join(""):`<li class="muted" style="padding:12px 4px">Nada encontrado para "${esc(q0)}".</li>`;
 }
 function drawResults(){
   const q=norm(sh.q.trim());
-  let list=allFoods();
-  if(q){
-    const parts=q.split(/\s+/);
-    list=list.filter(f=>{const n=norm(f.name);return parts.every(p=>n.includes(p))});
-    const score=f=>{const n=norm(f.name);let sc=f.builtin?0:-100;if(n.startsWith(parts[0]))sc-=20;else if(new RegExp("(^|[\\s,(/])"+parts[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(n))sc-=10;if(f.src==="Comum")sc-=5;if(/\bcru[a]?\b/.test(n))sc+=3;return sc+n.length/100};
-    list=list.map(f=>[score(f),f]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
-  }
+  const list=rankFoods(q,allFoods());
   const el=$("#sh-results"); if(!el) return;
   const shown=list.slice(0,q?80:40);
-  el.innerHTML=shown.length?shown.map(f=>`<li><button class="result" data-act="pick" data-id="${esc(f.id)}"><span class="food-emo" aria-hidden="true">${foodEmoji(f.name)}</span><div class="grow"><div class="nm">${esc(f.name)}${f.builtin?"":'<span class="tag">meu</span>'}</div>
-    <div class="mt">${f.src==="TACO"?'<span class="src">TACO</span> ':""}${f.unit==="porção"?"1 porção":"100 "+esc(f.unit)} · ${fmt0(f.kcal)} kcal · P ${fmt1(f.p)} · C ${fmt1(f.c)} · G ${fmt1(f.f)}</div></div>
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="color:var(--muted)"><path d="M9 5l7 7-7 7"/></svg></button></li>`).join("")
+  const off=sh.off&&sh.off.q===sh.q.trim()?sh.off:null;
+  let html=off?(off.loading?`<li class="muted" style="padding:12px 4px">Procurando na internet…</li>`:off.err?`<li class="muted" style="padding:12px 4px">${esc(off.err)}</li>`:off.list.map(f=>foodRow(f,"pick")).join("")):"";
+  html+=shown.length?shown.map(f=>foodRow(f,"pick")).join("")
     :`<li class="muted" style="padding:12px 4px">Nada encontrado para "${esc(sh.q)}". <button class="btn ghost small" data-act="toManual">Digitar os valores</button></li>`;
+  if(q.length>=3&&!off) html+=`<li style="padding:10px 0"><button class="btn small" data-act="offSearch">🌐 Procurar produto de marca na internet</button></li>`;
+  el.innerHTML=html;
+}
+async function offSearch(){
+  const q=sh.q.trim(); if(!q) return;
+  sh.off={q,loading:true,list:[]};drawResults();
+  try{
+    const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),15000);
+    const r=await fetch("https://world.openfoodfacts.org/cgi/search.pl?search_terms="+encodeURIComponent(q)+"&search_simple=1&action=process&json=1&page_size=30&fields=code,product_name,product_name_pt,brands,nutriments",{signal:ctl.signal});
+    clearTimeout(tm);
+    const j=await r.json();
+    const list=(j.products||[]).map(x=>{const n=x.nutriments||{};const kcal=n["energy-kcal_100g"]!=null?+n["energy-kcal_100g"]:(n.energy_100g!=null?+n.energy_100g/4.184:null);
+      const nm=(x.product_name_pt||x.product_name||"").trim();if(!nm||kcal==null||!isFinite(kcal))return null;
+      return {id:"off"+x.code,name:nm+(x.brands?" ("+String(x.brands).split(",")[0].trim()+")":""),kcal:Math.round(kcal),p:r1(+n.proteins_100g||0),c:r1(+n.carbohydrates_100g||0),f:r1(+n.fat_100g||0),unit:"g",per:100,portions:[],builtin:true,src:"OFF"}}).filter(Boolean).slice(0,15);
+    if(!sh||!sh.off||sh.off.q!==q) return;
+    sh.off={q,list,err:list.length?null:"Nenhum produto com tabela nutricional encontrado na internet."};
+  }catch(e){if(sh&&sh.off&&sh.off.q===q)sh.off={q,list:[],err:"Não consegui buscar na internet agora. Verifique a conexão e tente de novo."}}
+  if(sh&&sh.tab==="buscar"&&!sh.food)drawResults();
+}
+
+/* ---------- preparo ---------- */
+function prepState(){const pr={base:null,q:"",method:"empanado",qty:"100",save:true};applyMethod(pr,"empanado");return pr}
+function applyMethod(pr,k){const m=PREP.find(x=>x.k===k);pr.method=k;pr.rend=String(m.rend);pr.oleo=String(m.oleo);pr.emp={rosca:String(m.emp.rosca||0),ovo:String(m.emp.ovo||0),trigo:String(m.emp.trigo||0)}}
+const prepOpts=pr=>({rend:num(pr.rend)||100,oleo:num(pr.oleo)||0,emp:{rosca:num(pr.emp.rosca)||0,ovo:num(pr.emp.ovo)||0,trigo:num(pr.emp.trigo)||0}});
+function prepFood(){
+  const pr=sh.prep,b=pr.base,m=PREP.find(x=>x.k===pr.method),r=cookCalc(b,prepOpts(pr));
+  return {name:prepName(b.name,m),kcal:r1(r.kcal),p:r1(r.p),c:r1(r.c),f:r1(r.f),unit:"g",per:100,portions:[],calc:r};
+}
+function prepBody(){
+  const pr=sh.prep;
+  if(!pr.base) return `<div class="field"><label for="pr-q">1. Escolha o alimento cru</label><input class="input" id="pr-q" type="search" placeholder="ex.: tilápia, frango peito, patinho, berinjela" value="${esc(pr.q)}" autocomplete="off"></div>
+    <p class="hint">Depois você escolhe o preparo (grelhado, frito, empanado, air fryer…) e a conta é feita na hora: perda de água no cozimento, óleo absorvido e o empanamento.</p>
+    <ul class="result-list" id="pr-results"></ul>`;
+  const b=pr.base,raw=/\bcru[as]{0,2}\b/.test(norm(b.name));
+  return `<div class="sel-food"><span class="food-emo big" aria-hidden="true">${foodEmoji(b.name)}</span><div class="grow"><div style="font-weight:700">${esc(b.name)}</div><div class="muted" style="font-size:13px">cru, 100 g: ${fmt0(b.kcal)} kcal · P ${fmt1(b.p)} · C ${fmt1(b.c)} · G ${fmt1(b.f)}</div></div><button class="btn small" data-act="prBack">Trocar</button></div>
+    ${raw?"":`<p class="hint" style="color:var(--over)">Esse alimento não parece cru. Os fatores de preparo consideram o alimento cru.</p>`}
+    <div class="label" style="margin-top:10px">2. Como foi preparado</div>
+    <div class="chips">${PREP.map(m=>`<button data-act="prMethod" data-k="${m.k}" aria-pressed="${pr.method===m.k}">${m.emo} ${esc(m.nm)}</button>`).join("")}</div>
+    <details class="adj"><summary>Ajustar a conta (por 100 g do alimento cru)</summary>
+      <div class="calc-grid">
+        <div class="field"><label for="pr-rend">Rendimento (%)</label><input class="input" id="pr-rend" inputmode="decimal" value="${esc(pr.rend)}"></div>
+        <div class="field"><label for="pr-oleo">Óleo absorvido (g)</label><input class="input" id="pr-oleo" inputmode="decimal" value="${esc(pr.oleo)}"></div>
+        <div class="field"><label for="pr-rosca">Farinha de rosca (g)</label><input class="input" id="pr-rosca" inputmode="decimal" value="${esc(pr.emp.rosca)}"></div>
+        <div class="field"><label for="pr-ovo">Ovo (g)</label><input class="input" id="pr-ovo" inputmode="decimal" value="${esc(pr.emp.ovo)}"></div>
+        <div class="field"><label for="pr-trigo">Farinha de trigo (g)</label><input class="input" id="pr-trigo" inputmode="decimal" value="${esc(pr.emp.trigo)}"></div>
+      </div>
+      <p class="hint">Rendimento é quanto pesa depois de pronto, sem contar o óleo: 100 g de peixe cru viram uns 75 a 80 g. Na fritura por imersão, o empanado absorve de 10 a 15 g de óleo a cada 100 g.</p>
+    </details>
+    <div class="calc-out" id="pr-out"></div>
+    <div class="field"><label for="pr-qty">3. Quanto você comeu (g, pronto)</label><div class="unit-in"><input class="input" id="pr-qty" inputmode="decimal" value="${esc(pr.qty)}"><em>g</em></div></div>
+    <div class="portions">${[["1 filé",120],["1 bife",100],["1 porção",150],["2 filés",240]].map(p=>`<button data-act="prPortion" data-g="${p[1]}">${p[0]} · ${p[1]} g</button>`).join("")}</div>
+    <div class="preview" id="pr-prev"></div>
+    <label class="check"><input type="checkbox" id="pr-save" ${pr.save?"checked":""}> Salvar em "Meus alimentos" para buscar depois</label>
+    <button class="btn primary" style="width:100%" data-act="shSave">Adicionar</button>`;
+}
+function drawPrepOut(){
+  const el=$("#pr-out");if(!el)return;
+  const f=prepFood(),r=f.calc,q=num(sh.prep.qty)||0;
+  el.innerHTML=`<div><b>${esc(f.name)}</b></div><div>100 g pronto: <b>${fmt0(f.kcal)} kcal</b> · P ${fmt1(f.p)} · C ${fmt1(f.c)} · G ${fmt1(f.f)}</div>
+    <div class="brk">Conta: 100 g cru (${fmt0(sh.prep.base.kcal)} kcal)${r.parts.map(x=>" + "+esc(x[0].toLowerCase())+" "+fmt1(x[1])+" g ("+fmt0(x[2])+" kcal)").join("")} = ${fmt0(r.total)} kcal em ${fmt0(r.peso)} g prontos.</div>`;
+  const pv=$("#pr-prev");if(pv)pv.innerHTML=previewHtml(macrosFor(f,q));
+}
+const previewHtml=m=>`<div><b>${fmt0(m.kcal)}</b><span>kcal</span></div><div class="p-c"><b>${fmt1(m.p)}</b><span>prot. g</span></div><div class="c-c"><b>${fmt1(m.c)}</b><span>carb. g</span></div><div class="f-c"><b>${fmt1(m.f)}</b><span>gord. g</span></div>`;
+
+/* ---------- receita ---------- */
+function recState(){return {name:"",q:"",ings:[],peso:"",porc:"",qty:"",save:true}}
+function recCalc(){
+  const rc=sh.rec,t={kcal:0,p:0,c:0,f:0};let g=0;
+  rc.ings.forEach(i=>{const q=num(i.g)||0;g+=q;const m=macrosFor(i,q);t.kcal+=m.kcal;t.p+=m.p;t.c+=m.c;t.f+=m.f});
+  const peso=num(rc.peso)||g, porc=num(rc.porc)||0;
+  return {t,raw:g,peso,porc,porcG:porc?peso/porc:0};
+}
+function recFood(){
+  const rc=sh.rec,r=recCalc();if(!rc.ings.length||!r.peso)return null;
+  const k=100/r.peso;
+  return {name:rc.name.trim()||"Receita caseira",kcal:r1(r.t.kcal*k),p:r1(r.t.p*k),c:r1(r.t.c*k),f:r1(r.t.f*k),unit:"g",per:100,portions:r.porcG?[["1 porção",Math.round(r.porcG)]]:[]};
+}
+function recBody(){
+  const rc=sh.rec;
+  return `<div class="field"><label for="rc-name">Nome da receita</label><input class="input" id="rc-name" value="${esc(rc.name)}" placeholder="ex.: Strogonoff de frango da mamãe"></div>
+    <div class="field"><label for="rc-q">Ingredientes (adicione um por um, com o peso cru)</label><input class="input" id="rc-q" type="search" placeholder="ex.: peito de frango cru, creme de leite, arroz" value="${esc(rc.q)}" autocomplete="off"></div>
+    <ul class="result-list" id="rc-results"></ul>
+    <div id="rc-list">${rc.ings.length?rc.ings.map((i,n)=>`<div class="ing-row"><span class="food-emo" aria-hidden="true">${foodEmoji(i.name)}</span><div class="grow">${esc(i.name)}<small>${fmt0(i.kcal)} kcal em 100 ${esc(i.unit)}</small></div><div class="unit-in"><input class="input" id="rc-g-${n}" data-ri="${n}" inputmode="decimal" value="${esc(i.g)}" aria-label="Quantidade de ${esc(i.name)}"><em>${esc(i.unit)}</em></div><button class="icon-btn" data-act="rcDel" data-i="${n}" aria-label="Remover ${esc(i.name)}">✕</button></div>`).join(""):`<p class="hint">Nenhum ingrediente ainda. Inclua também o óleo, o azeite e o que mais for na panela.</p>`}</div>
+    <div class="calc-grid">
+      <div class="field"><label for="rc-peso">Peso final pronto (g)</label><input class="input" id="rc-peso" inputmode="decimal" value="${esc(rc.peso)}" placeholder="opcional"></div>
+      <div class="field"><label for="rc-porc">Rende quantas porções</label><input class="input" id="rc-porc" inputmode="decimal" value="${esc(rc.porc)}" placeholder="opcional"></div>
+    </div>
+    <p class="hint">Pese a panela pronta (sem a panela) para a conta ficar certa: o cozimento muda o peso. Sem o peso final, uso a soma dos ingredientes.</p>
+    <div class="calc-out" id="rc-out"></div>
+    <div class="field"><label for="rc-qty">Quanto você comeu (g)</label><div class="unit-in"><input class="input" id="rc-qty" inputmode="decimal" value="${esc(rc.qty)}"><em>g</em></div></div>
+    <div class="portions" id="rc-portions"></div>
+    <div class="preview" id="rc-prev"></div>
+    <label class="check"><input type="checkbox" id="rc-save" ${rc.save?"checked":""}> Salvar a receita em "Meus alimentos"</label>
+    <p class="muted" id="rc-err" style="font-size:13px;margin:0 0 10px;color:var(--over)" hidden>Adicione os ingredientes e diga quanto você comeu.</p>
+    <button class="btn primary" style="width:100%" data-act="shSave">Adicionar</button>`;
+}
+function drawRecOut(){
+  const el=$("#rc-out");if(!el)return;
+  const r=recCalc(),f=recFood();
+  if(!f){el.innerHTML=`<span class="muted">Os valores aparecem aqui quando você incluir os ingredientes.</span>`;}
+  else el.innerHTML=`<div>Receita inteira (${fmt0(r.peso)} g): <b>${fmt0(r.t.kcal)} kcal</b> · P ${fmt1(r.t.p)} · C ${fmt1(r.t.c)} · G ${fmt1(r.t.f)}</div>
+    <div>100 g: <b>${fmt0(f.kcal)} kcal</b> · P ${fmt1(f.p)} · C ${fmt1(f.c)} · G ${fmt1(f.f)}</div>
+    ${r.porcG?`<div>1 porção (${fmt0(r.porcG)} g): <b>${fmt0(f.kcal*r.porcG/100)} kcal</b> · P ${fmt1(f.p*r.porcG/100)} · C ${fmt1(f.c*r.porcG/100)} · G ${fmt1(f.f*r.porcG/100)}</div>`:""}`;
+  const pp=$("#rc-portions");if(pp)pp.innerHTML=r.porcG?`<button data-act="rcPortion" data-g="${Math.round(r.porcG)}">1 porção · ${fmt0(r.porcG)} g</button><button data-act="rcPortion" data-g="${Math.round(r.porcG*2)}">2 porções · ${fmt0(r.porcG*2)} g</button>`:"";
+  const pv=$("#rc-prev");if(pv)pv.innerHTML=previewHtml(f?macrosFor(f,num(sh.rec.qty)||0):{kcal:0,p:0,c:0,f:0});
+}
+function saveMyFood(f){
+  const foods=S.settings.foods, o={name:f.name,unit:"g",per:100,kcal:f.kcal,p:f.p,c:f.c,f:f.f,portions:f.portions||[]};
+  const ex=foods.find(x=>norm(x.name)===norm(f.name));
+  if(ex)Object.assign(ex,o);else foods.unshift(Object.assign({id:"u"+uid().slice(0,12)},o));
+  persistSettings();
 }
 function drawPreview(){
   const el=$("#sh-prev");if(!el)return;
   const q=num(sh.qty)||0, m=macrosFor(sh.food,q);
-  el.innerHTML=`<div><b>${fmt0(m.kcal)}</b><span>kcal</span></div><div class="p-c"><b>${fmt1(m.p)}</b><span>prot. g</span></div><div class="c-c"><b>${fmt1(m.c)}</b><span>carb. g</span></div><div class="f-c"><b>${fmt1(m.f)}</b><span>gord. g</span></div>`;
+  el.innerHTML=previewHtml(m);
 }
 function readMan(){const m=sh.man;["name","qty","kcal","p","c","f"].forEach(k=>{const el=$("#m-"+k);if(el){if(k==="qty")m.qtyText=el.value;else m[k]=el.value}});const s=$("#m-save");if(s)m.save=s.checked}
 function shSave(){
@@ -884,6 +1077,18 @@ function shSave(){
     const f=sh.food, m=macrosFor(f,q);
     item={meal:sh.meal,name:f.name,qty:q,qtyText:qtyLabel(q,f.unit),kcal:r1(m.kcal),p:r1(m.p),c:r1(m.c),f:r1(m.f),
       base:{kcal:f.kcal,p:f.p,c:f.c,f:f.f,per:f.per,unit:f.unit}};
+  } else if(sh.tab==="preparo"){
+    const pr=sh.prep;if(!pr.base){const e=$("#pr-q");if(e)e.focus();return}
+    const q=num(pr.qty); if(!q){const e=$("#pr-qty");e.focus();e.style.borderColor="var(--over)";return}
+    const f=prepFood(),m=macrosFor(f,q);
+    item={meal:sh.meal,name:f.name,qty:q,qtyText:qtyLabel(q,"g"),kcal:r1(m.kcal),p:r1(m.p),c:r1(m.c),f:r1(m.f),base:{kcal:f.kcal,p:f.p,c:f.c,f:f.f,per:100,unit:"g"}};
+    const sv=$("#pr-save");if(sv?sv.checked:pr.save)saveMyFood(f);
+  } else if(sh.tab==="receita"){
+    const f=recFood(),q=num(sh.rec.qty);
+    if(!f||!q){$("#rc-err").hidden=false;return}
+    const m=macrosFor(f,q);
+    item={meal:sh.meal,name:f.name,qty:q,qtyText:qtyLabel(q,"g"),kcal:r1(m.kcal),p:r1(m.p),c:r1(m.c),f:r1(m.f),base:{kcal:f.kcal,p:f.p,c:f.c,f:f.f,per:100,unit:"g"}};
+    const sv=$("#rc-save");if(sv?sv.checked:sh.rec.save)saveMyFood(f);
   } else {
     readMan(); const m=sh.man, kc=num(m.kcal);
     if(!m.name.trim()||kc==null){$("#m-err").hidden=false;return}
@@ -950,8 +1155,16 @@ document.addEventListener("click",e=>{
     case "shClose":closeSheet();break;
     case "shTab":if(sh.tab==="manual")readMan();sh.tab=a.dataset.t;drawSheet();focusFirst();break;
     case "toManual":sh.man.name=sh.q;sh.tab="manual";drawSheet();break;
-    case "pick":{const f=allFoods().find(x=>x.id===a.dataset.id);if(!f)break;sh.food=f;const p=f.portions&&f.portions[0];sh.qty=f.unit==="porção"?"1":String(p?p[1]:100);drawSheet();break}
+    case "pick":{const f=allFoods().concat(sh.off&&sh.off.list||[]).find(x=>x.id===a.dataset.id);if(!f)break;sh.food=f;const p=f.portions&&f.portions[0];sh.qty=f.unit==="porção"?"1":String(p?p[1]:100);drawSheet();break}
     case "shBack":sh.food=null;drawSheet();focusFirst();break;
+    case "offSearch":offSearch();break;
+    case "prPick":{const f=allFoods().find(x=>x.id===a.dataset.id);if(!f)break;sh.prep.base=f;drawSheet();break}
+    case "prBack":sh.prep.base=null;drawSheet();focusFirst();break;
+    case "prMethod":{const op=$("#sheet details.adj");const wasOpen=op&&op.open;applyMethod(sh.prep,a.dataset.k);drawSheet();if(wasOpen)$("#sheet details.adj").open=true;break}
+    case "prPortion":sh.prep.qty=a.dataset.g;$("#pr-qty").value=sh.prep.qty;drawPrepOut();break;
+    case "rcPick":{const f=allFoods().find(x=>x.id===a.dataset.id);if(!f)break;const p=f.portions&&f.portions[0];sh.rec.ings.push(Object.assign({},f,{g:String(p?p[1]:100)}));sh.rec.q="";drawSheet();const e=$("#rc-g-"+(sh.rec.ings.length-1));if(e){e.focus();e.select()}break}
+    case "rcDel":sh.rec.ings.splice(+a.dataset.i,1);drawSheet();break;
+    case "rcPortion":sh.rec.qty=a.dataset.g;$("#rc-qty").value=sh.rec.qty;drawRecOut();break;
     case "portion":sh.qty=a.dataset.g;$("#sh-qty").value=sh.qty;drawPreview();break;
     case "shSave":shSave();break;
     case "shDelete":{const id=sh.editId;closeSheet();removeItem(id);break}
@@ -961,6 +1174,16 @@ document.addEventListener("input",e=>{
   const t=e.target;
   if(t.id==="sh-q"){sh.q=t.value;drawResults()}
   else if(t.id==="sh-qty"){sh.qty=t.value;t.style.borderColor="";drawPreview()}
+  else if(t.id==="pr-q"){sh.prep.q=t.value;drawFoodList("#pr-results",t.value,"prPick",f=>f.unit==="g",true)}
+  else if(t.id==="pr-qty"){sh.prep.qty=t.value;t.style.borderColor="";drawPrepOut()}
+  else if(t.id==="pr-rend"||t.id==="pr-oleo"){sh.prep[t.id.slice(3)]=t.value;drawPrepOut()}
+  else if(/^pr-(rosca|ovo|trigo)$/.test(t.id)){sh.prep.emp[t.id.slice(3)]=t.value;drawPrepOut()}
+  else if(t.id==="pr-save"){sh.prep.save=t.checked}
+  else if(t.id==="rc-name"){sh.rec.name=t.value}
+  else if(t.id==="rc-q"){sh.rec.q=t.value;drawFoodList("#rc-results",t.value,"rcPick",f=>f.unit!=="porção",false)}
+  else if(t.dataset&&t.dataset.ri!=null){sh.rec.ings[+t.dataset.ri].g=t.value;drawRecOut()}
+  else if(t.id==="rc-peso"||t.id==="rc-porc"||t.id==="rc-qty"){sh.rec[t.id.slice(3)]=t.value;$("#rc-err").hidden=true;drawRecOut()}
+  else if(t.id==="rc-save"){sh.rec.save=t.checked}
 });
 document.addEventListener("change",e=>{
   const t=e.target;
@@ -1000,7 +1223,7 @@ document.addEventListener("submit",e=>{
 });
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape"&&sh){closeSheet()}
-  if(e.key==="Enter"&&sh&&e.target.matches("#sh-qty,#sheet .form-grid input")){e.preventDefault();shSave()}
+  if(e.key==="Enter"&&sh&&e.target.matches("#sh-qty,#pr-qty,#rc-qty,#sheet .form-grid input")){e.preventDefault();shSave()}
 });
 
 render();
