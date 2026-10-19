@@ -1031,14 +1031,22 @@ function aiSdk(){
 // caminho direto pela API do Gemini (chave do Google AI Studio salva na conta da pessoa)
 const upSchema=o=>Array.isArray(o)?o.map(upSchema):(o&&typeof o==="object"?Object.fromEntries(Object.entries(o).map(([k,v])=>[k,k==="type"?String(v).toUpperCase():upSchema(v)])):o);
 async function aiAskKey(key,parts){
+  // tenta o modelo que funcionou por último e, se o Google estiver sobrecarregado (503/500/429), repete e passa para o próximo
+  const order=aiModelName?[aiModelName].concat(AI_MODELS.filter(x=>x!==aiModelName)):AI_MODELS;
   let last;
-  for(const m of (aiModelName?[aiModelName]:AI_MODELS)){
-    const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},
-      body:JSON.stringify({contents:[{role:"user",parts}],generationConfig:{responseMimeType:"application/json",responseSchema:upSchema(AI_SCHEMA),temperature:0.2}})});
-    const j=await r.json().catch(()=>({}));
-    if(r.ok){const t=(((j.candidates||[])[0]||{}).content||{}).parts;aiModelName=m;return JSON.parse((t||[]).map(x=>x.text||"").join(""))}
-    last=new Error("["+r.status+" "+((j.error||{}).status||"")+"] "+((j.error||{}).message||"erro"));
-    if(r.status!==404)throw last;
+  for(const m of order){
+    for(let tent=0;tent<2;tent++){
+      let r,j;
+      try{r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},
+        body:JSON.stringify({contents:[{role:"user",parts}],generationConfig:{responseMimeType:"application/json",responseSchema:upSchema(AI_SCHEMA),temperature:0.2}})});
+        j=await r.json().catch(()=>({}));}
+      catch(e){last=e;break}
+      if(r.ok){const t=(((j.candidates||[])[0]||{}).content||{}).parts;aiModelName=m;return JSON.parse((t||[]).map(x=>x.text||"").join(""))}
+      last=new Error("["+r.status+" "+((j.error||{}).status||"")+"] "+((j.error||{}).message||"erro"));
+      if(r.status===404||r.status===429)break;
+      if(r.status>=500){if(tent===0){await new Promise(z=>setTimeout(z,1500));continue}break}
+      throw last;
+    }
   }
   throw last;
 }
@@ -1060,6 +1068,7 @@ function aiErrMsg(e){
   if(/API key not valid|API_KEY_INVALID/i.test(m)&&(S.settings.aiKey||""))return "A chave do Gemini salva no app não é válida. Confira se copiou a chave inteira.";
   if(/genai config|api.?not.?enabled|has not been used|is disabled|SERVICE_DISABLED|firebasevertexai|PERMISSION_DENIED|403|API key not valid|billing/i.test(m))return "setup";
   if(/Failed to fetch|NetworkError|network|import|dynamically imported/i.test(m))return "Sem conexão com a internet agora. Tente de novo em instantes.";
+  if(/\b50[0-9]\b|UNAVAILABLE|high demand|overloaded/i.test(m))return "A IA do Google está sobrecarregada agora. Espere um minutinho e toque em Calcular de novo.";
   if(/quota|429|RESOURCE_EXHAUSTED/i.test(m))return "O limite gratuito de uso da IA acabou por hoje. Tente amanhã ou use a aba Buscar.";
   return "Não consegui calcular agora ("+m.slice(0,140)+"). Tente de novo.";
 }
