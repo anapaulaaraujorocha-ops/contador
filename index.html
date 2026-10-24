@@ -271,6 +271,8 @@ main{max-width:1080px;margin:0 auto;padding:16px 16px 110px}
 .ing-row .unit-in{width:104px;flex:none}.ing-row input{width:100%}
 .hint{font-size:12.5px;color:var(--muted);margin:6px 0 0}
 .back-link{border:0;background:none;color:var(--accent);font-weight:700;padding:0 0 10px;font-size:14px}
+.habit{margin:4px 0 6px}.habit p{margin:0 0 2px;font-size:13.5px;color:var(--muted);font-weight:600}
+.hint.fast{margin:4px 0 6px;color:var(--ok);font-weight:700}
 .more-opts{margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
 .more-opts p{margin:0 0 8px;font-size:13.5px;color:var(--muted);font-weight:600}
 .local-hits{margin-top:6px}
@@ -760,7 +762,54 @@ function status(v,g){
 let _unit="";
 function fmtDelta(n){return fmt0(n)+_unit}
 function st(v,g,unit){_unit=unit;return status(v,g)}
-function allFoods(){return S.settings.foods.map(f=>Object.assign({},f,{builtin:false})).concat(BASE)}
+function allFoods(){const mine=S.settings.foods.map(f=>Object.assign({},f,{builtin:false}));return mine.concat(learnedFoods(mine),BASE)}
+/* alimentos que a pessoa já registrou (inclusive os encontrados na busca inteligente) */
+let _habit=null,_habitSig="";
+function habitFoods(){
+  const keys=Object.keys(S.days).sort().reverse().slice(0,90);
+  const sig=keys.length+":"+keys.reduce((a,k)=>a+dayItems(k).length,0)+":"+(keys[0]||"");
+  if(_habit&&sig===_habitSig)return _habit;
+  const by={};
+  keys.forEach((k,di)=>dayItems(k).forEach(it=>{
+    const b=it.base;if(!b||b.unit==="porção"||!(+b.per)||!(+it.qty))return;
+    const n=norm(it.name).trim();const o=by[n]||(by[n]={name:it.name,n,count:0,meals:{},base:b,qty:it.qty,medida:"",rec:di});
+    o.count++;o.meals[it.meal]=(o.meals[it.meal]||0)+1;
+    if(di<=o.rec){o.rec=di;o.base=b;o.qty=it.qty;const m=/\(([^)]+)\)\s*$/.exec(it.qtyText||"");o.medida=m?m[1]:""}
+  }));
+  _habitSig=sig;return _habit=Object.values(by);
+}
+function learnedFoods(mine){
+  const have=new Set(BASE.concat(mine||[]).map(f=>norm(f.name).trim()));
+  return habitFoods().filter(h=>!have.has(h.n)).map(h=>({id:"L-"+h.n,name:h.name,kcal:r1(h.base.kcal*100/h.base.per),p:r1(h.base.p*100/h.base.per),c:r1(h.base.c*100/h.base.per),f:r1(h.base.f*100/h.base.per),
+    unit:h.base.unit||"g",per:100,portions:h.medida?[[h.medida,Math.round(h.qty)]]:[[fmt0(h.qty)+" g",Math.round(h.qty)]],src:"Aprendido",builtin:true,learned:true}));
+}
+function habitTop(meal,n){return habitFoods().slice().sort((a,b)=>((b.meals[meal]||0)*3+b.count-b.rec*0.05)-((a.meals[meal]||0)*3+a.count-a.rec*0.05)).slice(0,n)}
+function habitItem(h,g){const q=g||Math.round(h.qty),k=100/h.base.per;return {name:h.name,medida:g?"":h.medida,g:String(q),g0:q,on:true,
+  per:{kcal:r1(h.base.kcal*k),p:r1(h.base.p*k),c:r1(h.base.c*k),f:r1(h.base.f*k),per:100,unit:h.base.unit||"g"}}}
+/* tenta responder sem a busca inteligente: frase já pesquisada antes, ou só alimentos que a pessoa já registrou */
+function iaLocal(text){
+  const key=norm(text).replace(/\s+/g," ").trim();if(!key)return null;
+  const c=(S.settings.iaCache||{})[key];
+  if(c&&c.itens&&c.itens.length)return {res:c.itens.map(iaItem),note:c.note||""};
+  const hs=habitFoods(),idx={};hs.forEach(h=>idx[h.n]=h);
+  if(idx[key])return {res:[habitItem(idx[key])],note:""};
+  const parts=key.split(/\s*(?:,|;|\+|\be\b)\s*/).map(x=>x.trim()).filter(Boolean);if(!parts.length)return null;
+  const out=[];
+  for(const pt of parts){
+    const m=/^(\d+(?:[.,]\d+)?)\s*(?:g|gr|gramas?)\b\s*(?:de\s+)?(.*)$/.exec(pt);
+    const nm=(m?m[2]:pt).replace(/^(?:um|uma|1)\s+/,"").trim();
+    const h=idx[nm]||hs.find(x=>x.n.split(/[ ,(]/)[0]===nm&&hs.filter(y=>y.n.split(/[ ,(]/)[0]===nm).length===1);
+    if(!h)return null;out.push(habitItem(h,m?Math.round(num(m[1])):0));
+  }
+  return {res:out,note:""};
+}
+function iaRemember(text,r){
+  const key=norm(text).replace(/\s+/g," ").trim();if(!key||!r||!(r.itens||[]).length)return;
+  const c=S.settings.iaCache||(S.settings.iaCache={});
+  c[key]={itens:r.itens.slice(0,12),note:String(r.observacao||"").slice(0,300),t:Date.now()};
+  const ks=Object.keys(c);if(ks.length>80)ks.sort((a,b)=>c[a].t-c[b].t).slice(0,ks.length-80).forEach(k=>delete c[k]);
+  persistSettings();
+}
 function macrosFor(food,qty){const k=qty/(food.per||100);return {kcal:food.kcal*k,p:food.p*k,c:food.c*k,f:food.f*k}}
 function unitLabel(u){return u==="porção"?(" porção"):(" "+u)}
 function qtyLabel(q,u){if(u==="porção") return fmt1(q)+(q===1?" porção":" porções");return fmt1(q)+" "+u}
@@ -1034,10 +1083,10 @@ function rankFoods(q,list,preferRaw){
   if(!q) return list;
   const parts=q.split(/\s+/);
   list=list.filter(f=>{const n=norm(f.name);return parts.every(p=>n.includes(p))});
-  const score=f=>{const n=norm(f.name);let sc=f.builtin?0:-100;if(n.startsWith(parts[0]))sc-=20;else if(new RegExp("(^|[\\s,(/])"+parts[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(n))sc-=10;if(f.src==="Comum")sc-=5;if(f.src==="Calc")sc+=1;const raw=/\bcru[as]{0,2}\b/.test(n);if(preferRaw)sc+=raw?-8:4;else if(raw)sc+=3;return sc+n.length/100};
+  const score=f=>{const n=norm(f.name);let sc=f.builtin?(f.learned?-40:0):-100;if(n.startsWith(parts[0]))sc-=20;else if(new RegExp("(^|[\\s,(/])"+parts[0].replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).test(n))sc-=10;if(f.src==="Comum")sc-=5;if(f.src==="Calc")sc+=1;const raw=/\bcru[as]{0,2}\b/.test(n);if(preferRaw)sc+=raw?-8:4;else if(raw)sc+=3;return sc+n.length/100};
   return list.map(f=>[score(f),f]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
 }
-const SRC_TAG={TACO:"TACO",USDA:"USDA",Calc:"CALCULADO",OFF:"OPEN FOOD FACTS"};
+const SRC_TAG={TACO:"TACO",USDA:"USDA",Calc:"CALCULADO",OFF:"OPEN FOOD FACTS",Aprendido:"JÁ USADO"};
 function foodRow(f,act){return `<li><button class="result" data-act="${act}" data-id="${esc(f.id)}"><span class="food-emo" aria-hidden="true">${foodEmoji(f.name)}</span><div class="grow"><div class="nm">${esc(f.name)}${f.builtin===false?'<span class="tag">meu</span>':""}</div>
     <div class="mt">${SRC_TAG[f.src]?'<span class="src">'+SRC_TAG[f.src]+'</span> ':""}${f.unit==="porção"?"1 porção":"100 "+esc(f.unit)} · ${fmt0(f.kcal)} kcal · P ${fmt1(f.p)} · C ${fmt1(f.c)} · G ${fmt1(f.f)}</div></div>
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="color:var(--muted)"><path d="M9 5l7 7-7 7"/></svg></button></li>`}
@@ -1166,7 +1215,12 @@ function iaBody(){
   return `<div class="field"><label for="ia-text">O que você comeu?</label><textarea class="input" id="ia-text" rows="3" placeholder="ex.: 1 filé de tilápia empanada e frita, 4 colheres de arroz, 1 concha de feijão e salada">${esc(ia.text)}</textarea></div>
     ${ia.img?`<div class="ia-photo"><img src="${ia.img}" alt="Foto do prato"><button data-act="iaNoPhoto">Remover foto</button></div>`:""}
     <div class="ia-actions"><label class="btn" for="ia-file">📷 ${ia.img?"Trocar foto":"Foto do prato"}</label><input type="file" id="ia-file" accept="image/*" hidden><button class="btn primary" data-act="iaRun" ${ia.loading?"disabled":""}>🔎 Buscar</button></div>
-    <div id="ia-out"></div>`;
+    ${habitChips()}<div id="ia-out"></div>`;
+}
+function habitChips(){
+  const ia=sh.ia;if(ia.loading)return "";const top=habitTop(sh.meal,8);if(!top.length)return "";
+  const on=new Set((ia.res||[]).filter(x=>x.on).map(x=>norm(x.name).trim()));
+  return `<div class="habit"><p>🔁 Você costuma comer</p><div class="chips">${top.map(h=>`<button data-act="habit" data-n="${esc(h.n)}" aria-pressed="${on.has(h.n)}">${foodEmoji(h.name)} ${esc(h.name.length>34?h.name.slice(0,32)+"…":h.name)}</button>`).join("")}</div></div>`;
 }
 const MORE_OPTS=()=>`<div class="more-opts"><p>Não era isso? Outras formas de adicionar:</p><div class="chips">
   <button data-act="goTab" data-t="buscar">📋 Tabela de alimentos</button><button data-act="goTab" data-t="preparo">🍳 Calcular preparo</button>
@@ -1186,7 +1240,7 @@ function drawIaOut(){
   const rows=ia.res.map((it,i)=>{const m=macrosFor(it.per,num(it.g)||0);if(it.on){tot.kcal+=m.kcal;tot.p+=m.p;tot.c+=m.c;tot.f+=m.f}
     return `<div class="ia-row"><input type="checkbox" data-iaon="${i}" ${it.on?"checked":""} aria-label="Incluir ${esc(it.name)}"><span class="food-emo" aria-hidden="true">${foodEmoji(it.name)}</span><div class="grow"><b>${esc(it.name)}</b><small>${esc(it.medida)}${it.medida?" · ":""}<span id="ia-m-${i}">${fmt0(m.kcal)} kcal · P ${fmt1(m.p)} · C ${fmt1(m.c)} · G ${fmt1(m.f)}</span></small></div><div class="unit-in"><input class="input" data-iag="${i}" inputmode="decimal" value="${esc(it.g)}" aria-label="Gramas de ${esc(it.name)}"><em>g</em></div></div>`}).join("");
   const n=ia.res.filter(x=>x.on).length;
-  el.innerHTML=`${rows}<div class="preview" id="ia-prev">${previewHtml(tot)}</div>${ia.note?`<p class="hint" style="margin-bottom:10px">${esc(ia.note)}</p>`:""}
+  el.innerHTML=`${ia.fast?`<p class="hint fast">⚡ Já estava salvo nos seus registros</p>`:""}${rows}<div class="preview" id="ia-prev">${previewHtml(tot)}</div>${ia.note?`<p class="hint" style="margin-bottom:10px">${esc(ia.note)}</p>`:""}
     <button class="btn primary" style="width:100%" data-act="shSave" ${n?"":"disabled"}>Adicionar ${n} ${n===1?"item":"itens"}</button>${MORE_OPTS()}`;
 }
 function iaUpdateRow(i){
@@ -1199,10 +1253,11 @@ async function iaRun(){
   const kt=ia.text.trim();
   if(/^(AQ\.|AIza)[\w.-]{20,}$/.test(kt)){S.settings.aiKey=kt;aiModelName=null;persistSettings();publishAppKey(kt);ia.text="";drawSheet();toast("Chave do Gemini salva! Agora escreva o que você comeu.");return}
   if(!ia.text.trim()&&!ia.img){if(t){t.focus();t.style.borderColor="var(--over)"}return}
-  const me=sh;ia.loading=true;ia.err=null;drawSheet();
+  if(!ia.img){const loc=iaLocal(ia.text);if(loc){ia.res=loc.res;ia.note=loc.note;ia.err=null;ia.fast=true;drawSheet();return}}
+  ia.fast=false;const me=sh;ia.loading=true;ia.err=null;drawSheet();
   const parts=[{text:AI_PROMPT+"\n\nRefeição: "+MEAL_NAME[sh.meal]+"\nDescrição da pessoa: "+(ia.text.trim()||"(sem descrição, use a foto)")}];
   if(ia.img)parts.push({inlineData:{mimeType:"image/jpeg",data:ia.img.split(",")[1]}});
-  try{const r=await aiAsk(parts);ia.res=(r.itens||[]).map(iaItem);ia.note=r.observacao||""}
+  try{const r=await aiAsk(parts);ia.res=(r.itens||[]).map(iaItem);ia.note=r.observacao||"";if(!ia.img)iaRemember(ia.text,r)}
   catch(e){console.warn(e);ia.err=aiErrMsg(e);ia.errRaw=String(e&&(e.message||e)).slice(0,400)}
   ia.loading=false;if(sh===me&&sh.tab==="ia")drawSheet();
 }
@@ -1409,6 +1464,8 @@ document.addEventListener("click",e=>{
     case "shBack":sh.food=null;drawSheet();focusFirst();break;
     case "offSearch":offSearch();break;
     case "iaRun":iaRun();break;
+    case "habit":{const h=habitFoods().find(x=>x.n===a.dataset.n);if(!h||!sh.ia)break;const ia=sh.ia;ia.err=null;ia.res=ia.res||[];
+      const i=ia.res.findIndex(x=>norm(x.name).trim()===h.n);if(i>=0)ia.res[i].on=!ia.res[i].on;else{ia.res.push(habitItem(h));if(ia.res.length===1){ia.note="";ia.fast=true}}drawSheet();break}
     case "goTab":{const t=a.dataset.t,txt=(sh.ia&&sh.ia.text||"").trim();if(t==="buscar"){sh.q=txt;sh.food=null}if(t==="manual"&&!sh.man.name)sh.man.name=txt;if(t==="preparo"&&!sh.prep.base)sh.prep.q=txt;sh.tab=t;drawSheet();focusFirst();break}
     case "iaKeySave":{const v=(a.parentElement.querySelector("input").value||"").trim();S.settings.aiKey=v;aiModelName=null;persistSettings();if(v)publishAppKey(v).then(ok=>toast(ok?"Configuração salva e liberada para todos":"Configuração salva"));else toast("Configuração removida");if(sh&&sh.ia&&v&&(sh.ia.text||sh.ia.img))iaRun();else if(sh&&sh.mode==="account")openAccount();else if(sh)drawSheet();break}
     case "iaNoPhoto":sh.ia.img=null;drawSheet();break;
