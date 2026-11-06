@@ -177,7 +177,7 @@ main{max-width:1080px;margin:0 auto;padding:16px 16px 110px}
 /* history */
 .hist-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px}
-.seg button{border:0;background:transparent;padding:6px 12px;border-radius:8px;font-weight:700;color:var(--muted)}
+.seg button{border:0;background:transparent;padding:6px 12px;white-space:nowrap;border-radius:8px;font-weight:700;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
 .stat{padding:12px 14px}
@@ -363,6 +363,24 @@ main{max-width:1080px;margin:0 auto;padding:16px 16px 110px}
 .switch input:checked+i{background:var(--ok)}.switch input:checked+i::after{left:21px}
 .lm-alert .big.ring{animation:ringing .6s ease-in-out infinite alternate;display:inline-block}
 @keyframes ringing{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+/* bioimpedância */
+@media (max-width:480px){.seg button{padding:6px 8px;font-size:13px}.hist-head{flex-wrap:wrap}}
+.bio-hero{padding:16px;margin-bottom:12px;background:linear-gradient(135deg,var(--tint-6),var(--surface))}
+.bio-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}
+@media (min-width:761px){.bio-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.bio-kpi{background:var(--surface);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;box-shadow:var(--shadow)}
+.bio-kpi .e{font-size:20px}.bio-kpi .n{font-size:12px;color:var(--muted);font-weight:700}.bio-kpi b{font-family:var(--f-display);font-size:22px}.bio-kpi b small{font-size:12px;color:var(--muted);font-family:var(--f-body)}
+.bio-kpi .chip{align-self:flex-start;margin-top:2px}.bio-kpi .dl{font-size:13px}
+.bio-score{margin-top:10px;font-size:14.5px}.bio-score b{font-size:18px}
+.bio-ins{display:flex;gap:10px;margin:8px 0;font-size:14px;line-height:1.5}.bio-ins span{font-size:20px;flex:none}
+.bio-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:761px){.bio-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.bio-card{border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.bio-card .t{display:flex;justify-content:space-between;gap:4px;font-size:12.5px;font-weight:700;align-items:flex-start}.bio-card .t .chip{font-size:11px;padding:1px 7px;flex:none}
+.bio-card .v b{font-family:var(--f-display);font-size:20px}.bio-card .v small{color:var(--muted)}.bio-card .v .dl{font-size:12.5px;margin-left:6px}
+.bio-card small.muted{font-size:11.5px}.spark{width:100%;max-width:140px;height:30px}
+.chip.under{background:color-mix(in srgb,var(--prot) 15%,var(--surface));color:var(--prot)}
+.bio-hist th small{font-weight:400;color:var(--muted)}.bio-hist tbody th,.bio-hist thead th:first-child{position:sticky;left:0;background:var(--surface);z-index:1;white-space:normal;min-width:120px}.bio-hist td,.bio-hist th{font-size:12.5px}
 /* corpo */
 .c-hero{padding:16px;margin-bottom:12px;background:linear-gradient(135deg,var(--tint-3),var(--surface))}
 .c-hero.c-warn{background:linear-gradient(135deg,var(--tint-4),var(--surface))}.c-hero.c-over{background:linear-gradient(135deg,var(--tint-5),var(--surface))}.c-hero.c-under{background:linear-gradient(135deg,var(--tint-6),var(--surface))}
@@ -1145,8 +1163,8 @@ function weightChart(reg,meta){
 function viewCorpo(){
   ui.ct=ui.ct||"medidas";
   const head=`<div class="hist-head"><h1 class="page-title" style="margin:0">Corpo</h1>
-    <div class="seg" role="group" aria-label="Seção"><button data-act="ct" data-t="medidas" aria-pressed="${ui.ct==="medidas"}">⚖️ Peso e medidas</button><button data-act="ct" data-t="tirz" aria-pressed="${ui.ct==="tirz"}">💉 Tirzepatida</button></div></div>`;
-  return head+(ui.ct==="tirz"?viewTirz():viewMedidas());
+    <div class="seg" role="group" aria-label="Seção"><button data-act="ct" data-t="medidas" aria-pressed="${ui.ct==="medidas"}">⚖️ Medidas</button><button data-act="ct" data-t="bio" aria-pressed="${ui.ct==="bio"}">🧬 Bioimpedância</button><button data-act="ct" data-t="tirz" aria-pressed="${ui.ct==="tirz"}">💉 Tirzepatida</button></div></div>`;
+  return head+(ui.ct==="tirz"?viewTirz():ui.ct==="bio"?viewBio():viewMedidas());
 }
 function viewMedidas(){
   const c=corpo(),reg=c.reg,alt=c.altura,L=lastWith(reg,"peso");
@@ -1343,6 +1361,149 @@ function tzSave(){
   else toast("Aplicação registrada. Próxima em 7 dias.");
 }
 
+/* ---------- Bioimpedância (InBody e similares) ---------- */
+// [campo, nome, unidade, direção boa: -1 = quanto menor melhor, 1 = quanto maior melhor]
+const BIO_F=[["peso","Peso","kg",-1],["mme","Massa muscular esquelética","kg",1],["gord","Massa de gordura","kg",-1],["pgc","Gordura corporal","%",-1],["visc","Gordura visceral","nível",-1],
+  ["mlg","Massa livre de gordura","kg",1],["agua","Água corporal total","L",1],["prot","Proteínas","kg",1],["min","Minerais","kg",1],["imc","IMC","kg/m²",-1],["tmb","Taxa metabólica basal","kcal",1],["rcq","Relação cintura-quadril","",-1],["score","Pontuação InBody","pontos",1]];
+const BIO_SEG=[["bd","Braço direito"],["be","Braço esquerdo"],["tr","Tronco"],["pd","Perna direita"],["pe","Perna esquerda"]];
+const BIO_N=Object.fromEntries(BIO_F.map(f=>[f[0],f])),BIO_EMO={peso:"⚖️",mme:"💪",gord:"🧈",pgc:"📉",visc:"🫀",mlg:"🦴",agua:"💧",prot:"🥚",min:"🪨",imc:"📏",tmb:"🔥",rcq:"📐",score:"⭐"};
+function bio(){const b=S.settings.bio||(S.settings.bio={ex:[],ref:{}});b.ex=b.ex||[];b.ref=b.ref||{};return b}
+function bioRef(k){const r=bio().ref[k];if(r&&r.length===2)return r;const m=corpo().sexo==="m";
+  return ({pgc:m?[10,20]:[18,28],visc:[1,9],rcq:m?[0.8,0.9]:[0.75,0.85],imc:[18.5,25]})[k]||null}
+function bioSt(k,v){const r=bioRef(k);if(!r||v==null)return null;return v<r[0]?{t:"Abaixo",c:"under"}:v>r[1]?{t:"Acima",c:"over"}:{t:"Normal",c:"ok"}}
+const fmtB=(k,v)=>v==null?"–":k==="rcq"||k==="min"||k==="x"?(Math.round(v*100)/100).toLocaleString("pt-BR"):k==="tmb"||k==="visc"||k==="score"?fmt0(v):fmt1(v);
+function bioVal(e,k){if(e[k]!=null)return e[k];if(k==="mlg"&&e.peso!=null&&e.gord!=null)return r1(e.peso-e.gord);return null}
+function spark(vals,col){const v=vals.filter(x=>x!=null);if(v.length<2)return "";const lo=Math.min(...v),hi=Math.max(...v),W=96,H=30,n=vals.length;
+  const pts=vals.map((x,i)=>x==null?null:[4+i*(W-8)/(n-1),4+(hi===lo?0.5:(hi-x)/(hi-lo))*(H-8)]).filter(Boolean);
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ")}" fill="none" stroke="${col}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${pts[pts.length-1][0]}" cy="${pts[pts.length-1][1]}" r="3.2" fill="${col}"/></svg>`}
+function bioInsights(ex){
+  const out=[],F=ex[0],L=ex[ex.length-1];if(!L)return out;
+  if(F!==L&&F.peso!=null&&L.peso!=null&&F.gord!=null&&L.gord!=null){
+    const dp=F.peso-L.peso,dg=F.gord-L.gord,dm=(F.mme!=null&&L.mme!=null)?F.mme-L.mme:null;
+    if(dp>0.2){let s=`Desde ${dmy(F.d)} você perdeu ${fmt1(dp)} kg`;if(dg>0)s+=`, e ${fmt1(Math.min(dg,dp))} kg foram de gordura (${fmt0(Math.min(100,dg/dp*100))}% do que saiu)`;out.push(["🎉",s+"."])}
+    else if(dg>0.2)out.push(["🎉",`Desde ${dmy(F.d)} você perdeu ${fmt1(dg)} kg de gordura.`]);
+    if(dm!=null){if(dm>0.2)out.push(["💪",`A massa muscular caiu ${fmt1(dm)} kg desde o primeiro exame. Proteína em todas as refeições e treino de força ajudam a preservar o músculo durante o emagrecimento.`]);
+      else if(dm<-0.2)out.push(["💪",`E você ainda ganhou ${fmt1(-dm)} kg de músculo. Excelente!`])}
+  }
+  const P=ex.length>1?ex[ex.length-2]:null;
+  if(P&&P.mme!=null&&L.mme!=null&&L.mme>P.mme)out.push(["📈",`A massa muscular subiu ${fmt1(L.mme-P.mme)} kg desde o exame anterior (${dmy(P.d)}). Continue assim!`]);
+  const vs=ex.filter(e=>e.visc!=null);if(vs.length){const v0=vs[0].visc,v1=vs[vs.length-1].visc,r=bioRef("visc");
+    out.push(["🫀",`Gordura visceral ${v1<v0?`caiu de ${v0} para ${v1}`:v1>v0?`subiu de ${v0} para ${v1}`:`está em ${v1}`} (ideal até ${r[1]}). É a gordura entre os órgãos, a mais ligada a riscos para o coração e o diabetes${v1<v0?", então essa queda vale muito":""}.`])}
+  if(L.pgc!=null){const r=bioRef("pgc");out.push(["📉",`Seu percentual de gordura está em ${fmt1(L.pgc)}%. A faixa saudável${corpo().sexo==="m"?" para homens":" para mulheres"} é de ${r[0]} a ${r[1]}%.`])}
+  if(L.ctrlG!=null||L.ctrlM!=null)out.push(["🎯",`Meta sugerida pelo exame: ${L.ctrlG!=null?`${fmt1(Math.abs(L.ctrlG))} kg ${L.ctrlG<0?"a menos":"a mais"} de gordura`:""}${L.ctrlG!=null&&L.ctrlM!=null?" e ":""}${L.ctrlM!=null?`${fmt1(Math.abs(L.ctrlM))} kg ${L.ctrlM<0?"a menos":"a mais"} de músculo`:""}${L.pesoIdeal!=null?`, chegando a cerca de ${fmt1(L.pesoIdeal)} kg`:""}.`]);
+  if(L.tmb!=null)out.push(["🔥",`Em repouso seu corpo gasta cerca de ${fmt0(L.tmb)} kcal por dia. Comer muito abaixo disso por muito tempo pode custar músculo.`]);
+  return out;
+}
+function viewBio(){
+  const b=bio(),ex=b.ex,L=ex[ex.length-1],F=ex[0],P=ex.length>1?ex[ex.length-2]:null;
+  let html=`<section class="card section bio-imp"><h2>📄 Importar exame</h2><p class="hint" style="margin-top:0">Envie o PDF ou a foto da bioimpedância. O app lê todos os indicadores, inclusive o histórico de datas anteriores, e você confere antes de salvar.</p>
+    <div class="row-actions"><label class="btn primary" for="bio-file" style="cursor:pointer">📎 Escolher PDF ou foto</label><input type="file" id="bio-file" accept="application/pdf,image/*" hidden><button class="btn" data-act="bioManual">✏️ Digitar valores</button></div>
+    <div id="bio-out">${bioOutHtml()}</div></section>`;
+  if(ui.bioMan)html+=bioFormHtml();
+  if(!L)return html+`<section class="card section"><p class="muted" style="margin:0">Nenhum exame ainda. Importe o PDF do seu último exame: se ele tiver o histórico, todas as datas entram de uma vez.</p></section>`;
+  const datas=ex.map(e=>e.d),imp=html;
+  html=`<section class="card bio-hero"><div class="label">Último exame · ${esc(cap(fmtDate(L.d,{day:"numeric",month:"long",year:"numeric"})))}</div>
+    <div class="bio-kpis">${["pgc","gord","mme","visc"].map(k=>{const f=BIO_N[k],v=bioVal(L,k),v0=bioVal(F,k),s=bioSt(k,v),d=v!=null&&v0!=null&&F!==L?v-v0:null,good=d==null||!d?null:(d*f[3]>0);
+      return `<div class="bio-kpi"><span class="e">${BIO_EMO[k]}</span><span class="n">${f[1]}</span><b>${fmtB(k,v)}<small> ${f[2]}</small></b>${d!=null&&Math.abs(d)>=0.05?`<span class="dl ${good?"good":"bad"}">${d<0?"▼":"▲"} ${fmtB(k,Math.abs(d))}</span>`:""}${s?`<span class="chip ${s.c}">${s.t}</span>`:""}</div>`}).join("")}</div>
+    ${L.score!=null?`<div class="bio-score">⭐ Pontuação InBody: <b>${fmt0(L.score)}</b>/100</div>`:""}
+    <p class="muted" style="font-size:12.5px;margin:8px 0 0">${ex.length} ${ex.length===1?"exame":"exames"} · variação desde ${dmy(F.d)}</p></section>`+(ui.bioImp||ui.bioMan?imp:"");
+  const ins=bioInsights(ex);
+  if(ins.length)html+=`<section class="card section"><h2>💬 O que o exame mostra</h2>${ins.map(([e,t])=>`<p class="bio-ins"><span>${e}</span>${esc(t)}</p>`).join("")}</section>`;
+  // todos os indicadores
+  html+=`<section class="card section"><h2>📊 Todos os indicadores</h2><div class="bio-grid">${BIO_F.filter(f=>ex.some(e=>bioVal(e,f[0])!=null)).map(([k,n,u,dir])=>{
+    const vals=ex.map(e=>bioVal(e,k)),v=bioVal(L,k),pv=P?bioVal(P,k):null,s=bioSt(k,v),r=bioRef(k),d=v!=null&&pv!=null?v-pv:null,good=d==null||!d?null:d*dir>0;
+    return `<div class="bio-card"><div class="t"><span>${BIO_EMO[k]} ${n}</span>${s?`<span class="chip ${s.c}">${s.t}</span>`:""}</div>
+      <div class="v"><b>${fmtB(k,v)}</b> <small>${u}</small>${d!=null&&Math.abs(d)>=0.005?`<span class="dl ${good?"good":"bad"}">${d<0?"▼":"▲"} ${fmtB(k,Math.abs(d))}</span>`:""}</div>
+      ${spark(vals,good===false?"var(--over)":"var(--accent)")}
+      <small class="muted">${r?`Faixa: ${fmtB(k,r[0])} a ${fmtB(k,r[1])} ${u}`:"&nbsp;"}</small></div>`}).join("")}</div>
+    <p class="muted" style="font-size:12px;margin:8px 0 0">A seta compara com o exame anterior. Verde quando a mudança é boa para você.</p></section>`;
+  // massa magra por segmento
+  if(BIO_SEG.some(([k])=>L["seg_"+k]!=null)){
+    html+=`<section class="card section"><h2>🧍 Massa magra por região</h2><div class="cmp-wrap"><table class="cmp"><thead><tr><th></th><th>Agora</th>${F!==L?`<th>${dmy(F.d)}</th><th>Variação</th>`:""}</tr></thead><tbody>
+      ${BIO_SEG.map(([k,n])=>{const v=L["seg_"+k],v0=F["seg_"+k];return `<tr><th>${n}</th><td><b>${fmtB("x",v)}</b> <small>kg</small></td>${F!==L?`<td>${fmtB("x",v0)}</td><td>${v!=null&&v0!=null?`<span class="dl ${v>=v0?"good":"bad"}">${v<v0?"▼":"▲"} ${fmtB("x",Math.abs(v-v0))}</span>`:"–"}</td>`:""}</tr>`}).join("")}</tbody></table></div></section>`;
+  }
+  // histórico em tabela
+  html+=`<section class="card section"><h2>🗓️ Histórico dos exames</h2><div class="cmp-wrap"><table class="cmp bio-hist"><thead><tr><th></th>${datas.map(d=>`<th>${dmy(d)}</th>`).join("")}</tr></thead><tbody>
+    ${BIO_F.filter(f=>ex.some(e=>bioVal(e,f[0])!=null)).map(([k,n,u])=>`<tr><th>${n}${u?` <small>(${u})</small>`:""}</th>${ex.map(e=>`<td>${fmtB(k,bioVal(e,k))}</td>`).join("")}</tr>`).join("")}
+    </tbody></table></div>
+    <div class="chips" style="margin-top:10px">${ex.slice().reverse().map(e=>`<button data-act="bioDel" data-d="${e.d}">🗑️ Apagar ${dmy(e.d)}</button>`).join("")}</div></section>`;
+  if(!ui.bioImp&&!ui.bioMan)html+=imp;
+  return html;
+}
+function bioOutHtml(){
+  const st=ui.bioImp;if(!st)return "";
+  if(st.loading)return `<div class="ia-load" role="status"><div class="plate"><span class="emo">🧬</span></div><div class="msg">Lendo o seu exame…</div><div class="bar"><b></b></div><p class="tip">Isso leva alguns segundos.</p></div>`;
+  if(st.err)return `<div class="ia-err">${esc(st.err)}</div>`;
+  const ex=st.ex||[];if(!ex.length)return `<div class="ia-err">Não encontrei indicadores nesse arquivo. Confira se é o laudo da bioimpedância.</div>`;
+  const cols=BIO_F.filter(f=>ex.some(e=>e[f[0]]!=null));
+  return `<p class="hint fast" style="margin:10px 0 6px">✅ Encontrei ${ex.length} ${ex.length===1?"exame":"exames"}. Confira os valores:</p>
+    <div class="cmp-wrap"><table class="cmp bio-hist"><thead><tr><th></th>${ex.map(e=>`<th>${dmy(e.d)}</th>`).join("")}</tr></thead><tbody>
+    ${cols.map(([k,n,u])=>`<tr><th>${n}${u?` <small>(${u})</small>`:""}</th>${ex.map(e=>`<td>${fmtB(k,e[k])}</td>`).join("")}</tr>`).join("")}
+    ${BIO_SEG.filter(([k])=>ex.some(e=>e["seg_"+k]!=null)).map(([k,n])=>`<tr><th>Massa magra ${n.toLowerCase()} <small>(kg)</small></th>${ex.map(e=>`<td>${fmtB("x",e["seg_"+k])}</td>`).join("")}</tr>`).join("")}
+    </tbody></table></div>
+    <div class="row-actions" style="margin-top:10px"><button class="btn primary" data-act="bioSave">Salvar ${ex.length} ${ex.length===1?"exame":"exames"}</button><button class="btn" data-act="bioCancel">Cancelar</button></div>
+    <p class="muted" style="font-size:12px;margin:6px 0 0">O peso de cada data também entra em Peso e medidas.</p>`;
+}
+function bioFormHtml(){
+  const d=ui.bioMan;
+  return `<section class="card section"><h2>✏️ Digitar exame</h2><div class="goal-grid">
+    <div class="field"><label for="bm-d">Data do exame</label><input class="input" type="date" id="bm-d" value="${esc(d.d||todayKey())}" max="${todayKey()}"></div>
+    ${BIO_F.map(([k,n,u])=>`<div class="field"><label for="bm-${k}">${n}</label><div class="unit-in"><input class="input" id="bm-${k}" inputmode="decimal"><em>${u||"&nbsp;"}</em></div></div>`).join("")}
+    ${BIO_SEG.map(([k,n])=>`<div class="field"><label for="bm-seg_${k}">Massa magra ${n.toLowerCase()}</label><div class="unit-in"><input class="input" id="bm-seg_${k}" inputmode="decimal"><em>kg</em></div></div>`).join("")}
+  </div><div class="row-actions" style="margin-top:10px"><button class="btn primary" data-act="bioManSave">Salvar exame</button><button class="btn" data-act="bioManCancel">Cancelar</button></div></section>`;
+}
+const BIO_SCHEMA={type:"object",properties:{
+  altura_cm:{type:"number",nullable:true},
+  exames:{type:"array",items:{type:"object",properties:{data:{type:"string"},peso:{type:"number",nullable:true},massa_muscular_esqueletica:{type:"number",nullable:true},massa_gordura:{type:"number",nullable:true},
+    percentual_gordura:{type:"number",nullable:true},gordura_visceral:{type:"number",nullable:true},massa_livre_gordura:{type:"number",nullable:true},agua_corporal:{type:"number",nullable:true},proteinas:{type:"number",nullable:true},
+    minerais:{type:"number",nullable:true},imc:{type:"number",nullable:true},taxa_metabolica_basal:{type:"number",nullable:true},relacao_cintura_quadril:{type:"number",nullable:true},pontuacao:{type:"number",nullable:true},
+    peso_ideal:{type:"number",nullable:true},controle_gordura:{type:"number",nullable:true},controle_muscular:{type:"number",nullable:true},
+    massa_magra_braco_direito:{type:"number",nullable:true},massa_magra_braco_esquerdo:{type:"number",nullable:true},massa_magra_tronco:{type:"number",nullable:true},massa_magra_perna_direita:{type:"number",nullable:true},massa_magra_perna_esquerda:{type:"number",nullable:true}},required:["data"]}},
+  faixas:{type:"array",items:{type:"object",properties:{indicador:{type:"string"},minimo:{type:"number"},maximo:{type:"number"}},required:["indicador","minimo","maximo"]}}},required:["exames"]};
+const BIO_PROMPT=`Este arquivo é um laudo de bioimpedância (por exemplo InBody). Extraia TODOS os valores numéricos, sem inventar nada.
+- exames: um item por data de exame. Use o exame principal e também cada data das tabelas e gráficos de histórico (ex.: "Histórico da Composição Corporal"). data no formato AAAA-MM-DD (o laudo costuma usar DD.MM.AA).
+- Junte na mesma data os valores que aparecem em páginas diferentes.
+- Valores em kg, %, L, kcal, como impressos (use ponto como separador decimal). Deixe null o que não aparecer para aquela data.
+- massa_magra_* são os valores em kg da "Análise da Massa Magra Segmentar" ou dos gráficos de massa magra segmentar.
+- controle_gordura e controle_muscular são os valores de "Controle de Peso" (negativo quando é para perder).
+- faixas: as faixas de referência impressas entre parênteses, com indicador igual a um destes nomes: peso, massa_muscular_esqueletica, massa_gordura, percentual_gordura, gordura_visceral, massa_livre_gordura, agua_corporal, proteinas, minerais, imc, taxa_metabolica_basal, relacao_cintura_quadril.`;
+const BIO_MAP={peso:"peso",massa_muscular_esqueletica:"mme",massa_gordura:"gord",percentual_gordura:"pgc",gordura_visceral:"visc",massa_livre_gordura:"mlg",agua_corporal:"agua",proteinas:"prot",minerais:"min",imc:"imc",taxa_metabolica_basal:"tmb",relacao_cintura_quadril:"rcq",pontuacao:"score",
+  peso_ideal:"pesoIdeal",controle_gordura:"ctrlG",controle_muscular:"ctrlM",massa_magra_braco_direito:"seg_bd",massa_magra_braco_esquerdo:"seg_be",massa_magra_tronco:"seg_tr",massa_magra_perna_direita:"seg_pd",massa_magra_perna_esquerda:"seg_pe"};
+function bioParse(r){
+  const by={};
+  (r.exames||[]).forEach(x=>{let d=String(x.data||"").trim();const m=/^(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/.exec(d);if(m)d=(m[3].length===2?"20"+m[3]:m[3])+"-"+p2(+m[2])+"-"+p2(+m[1]);
+    if(!/^\d{4}-\d\d-\d\d$/.test(d))return;const e=by[d]||(by[d]={d});Object.entries(BIO_MAP).forEach(([a,k])=>{const v=x[a];if(v!=null&&isFinite(+v))e[k]=+v})});
+  const ref={};(r.faixas||[]).forEach(f=>{const k=BIO_MAP[f.indicador];if(k&&isFinite(+f.minimo)&&isFinite(+f.maximo)&&+f.maximo>+f.minimo)ref[k]=[+f.minimo,+f.maximo]});
+  return {ex:Object.values(by).filter(e=>Object.keys(e).length>2).sort((a,b)=>a.d<b.d?-1:1),ref,altura:+r.altura_cm||null};
+}
+function bioImport(file){
+  if(file.size>15e6){toast("Arquivo grande demais (máximo 15 MB)");return}
+  const fr=new FileReader();
+  fr.onload=async()=>{
+    const url=String(fr.result),mime=file.type||(/\.pdf$/i.test(file.name)?"application/pdf":"image/jpeg");
+    ui.bioImp={loading:true};render();
+    try{const r=await aiAsk([{text:BIO_PROMPT},{inlineData:{mimeType:mime,data:url.split(",")[1]}}],BIO_SCHEMA);ui.bioImp=bioParse(r)}
+    catch(e){console.warn(e);const m=aiErrMsg(e);ui.bioImp={err:m==="setup"?"Não consegui ler o exame agora. Tente de novo em instantes ou digite os valores.":m}}
+    if(ui.view==="corpo"&&ui.ct==="bio")render();
+  };
+  fr.readAsDataURL(file);
+}
+function bioStore(list,ref,altura){
+  const b=bio(),c=corpo(),before=b.ex.slice();
+  list.forEach(e=>{const i=b.ex.findIndex(x=>x.d===e.d);if(i>=0)b.ex[i]=Object.assign({},b.ex[i],e);else b.ex.push(e)});
+  b.ex.sort((a,b2)=>a.d<b2.d?-1:1);if(ref)Object.assign(b.ref,ref);if(altura&&!c.altura)c.altura=altura;
+  list.forEach(e=>{if(e.peso==null)return;const r=c.reg.find(x=>x.d===e.d);if(r){if(r.peso==null)r.peso=e.peso}else c.reg.push({d:e.d,peso:e.peso})});c.reg.sort((a,b2)=>a.d<b2.d?-1:1);
+  persistSettings();
+  const L=b.ex[b.ex.length-1],P=b.ex.length>1?b.ex[b.ex.length-2]:null,wins=[];
+  if(P&&list.some(e=>e.d===L.d)){
+    if(L.gord!=null&&P.gord!=null&&L.gord<P.gord)wins.push(`Você perdeu ${fmt1(P.gord-L.gord)} kg de gordura desde ${dmy(P.d)}.`);
+    if(L.mme!=null&&P.mme!=null&&L.mme>P.mme)wins.push(`Ganhou ${fmt1(L.mme-P.mme)} kg de massa muscular! 💪`);
+    if(L.visc!=null&&P.visc!=null&&L.visc<P.visc)wins.push(`A gordura visceral caiu de ${P.visc} para ${L.visc}.`);
+    if(L.pgc!=null&&P.pgc!=null&&L.pgc<P.pgc)wins.push(`O percentual de gordura caiu ${fmt1(P.pgc-L.pgc)} pontos.`);
+  }
+  return wins;
+}
+
 /* ---------- Início ---------- */
 function mealNow(){const d=new Date(),h=d.getHours()+d.getMinutes()/60;return h<9.5?"cafe":h<11.5?"lanche_manha":h<14.5?"almoco":h<18?"lanche_tarde":h<21?"jantar":"ceia"}
 function viewHome(){
@@ -1361,6 +1522,7 @@ function viewHome(){
     ${tile('data-nav="historico"',"📊","Histórico","Seu progresso")}
     ${tile('data-act="goTz"',"💉","Tirzepatida",z?(z.diff===0?"Hoje é dia!":z.diff<0?"Dose atrasada":"Próxima: "+esc(cap(parseKey(z.next).toLocaleDateString("pt-BR",{weekday:"short",day:"numeric",month:"numeric"}).replace(/\./g,"")))):"Registrar aplicação",z&&z.diff<=0?"hot":"")}
     ${tile('data-act="goMed"',"⚖️","Peso e medidas",L?fmt1(L.peso)+" kg · "+esc(shortDay(L.d)):"Registrar peso")}
+    ${tile('data-act="goBio"',"🧬","Bioimpedância",(()=>{const e=bio().ex,x=e[e.length-1];return x?(x.pgc!=null?"Gordura "+fmt1(x.pgc)+"% · ":"")+dmy(x.d):"Importar exame"})())}
     ${tile('data-nav="lembretes"',"⏰","Lembretes",nx?esc(nx.when)+" · "+esc(nx.l.titulo):"Criar lembrete")}
     ${tile('data-nav="dieta"',"🎯","Dieta",g.kcal?fmt0(g.kcal)+" kcal/dia":"Definir metas")}
     ${tile('data-nav="alimentos"',"🥗","Meus alimentos","Cadastrar e editar")}
@@ -1653,7 +1815,7 @@ const upSchema=o=>Array.isArray(o)?o.map(upSchema):(o&&typeof o==="object"?Objec
 // pensar menos = responder mais rápido; se o modelo não aceitar o ajuste, tenta de novo sem ele
 const noThink=new Set();
 const thinkCfg=m=>/2\.5/.test(m)?{thinkingBudget:/lite/.test(m)?0:512}:{thinkingLevel:"low"};
-async function aiAskKey(key,parts){
+async function aiAskKey(key,parts,schema){
   // tenta o modelo que funcionou por último e, se o Google estiver sobrecarregado (503/500/429), repete e passa para o próximo
   const order=aiModelName?[aiModelName].concat(AI_MODELS.filter(x=>x!==aiModelName)):AI_MODELS;
   let last;
@@ -1661,7 +1823,7 @@ async function aiAskKey(key,parts){
     for(let tent=0;tent<2;tent++){
       let r,j;
       try{r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},
-        body:JSON.stringify({contents:[{role:"user",parts}],generationConfig:Object.assign({responseMimeType:"application/json",responseSchema:upSchema(AI_SCHEMA),temperature:0.2},noThink.has(m)?{}:{thinkingConfig:thinkCfg(m)})})});
+        body:JSON.stringify({contents:[{role:"user",parts}],generationConfig:Object.assign({responseMimeType:"application/json",responseSchema:upSchema(schema||AI_SCHEMA),temperature:0.2},noThink.has(m)?{}:{thinkingConfig:thinkCfg(m)})})});
         j=await r.json().catch(()=>({}));}
       catch(e){last=e;break}
       if(r.ok){const t=(((j.candidates||[])[0]||{}).content||{}).parts;aiModelName=m;return JSON.parse((t||[]).map(x=>x.text||"").join(""))}
@@ -1674,13 +1836,13 @@ async function aiAskKey(key,parts){
   }
   throw last;
 }
-async function aiAsk(parts){
+async function aiAsk(parts,schema){
   const key=((S.settings.aiKey||"").trim())||appAiKey;
-  if(key) return aiAskKey(key,parts);
+  if(key) return aiAskKey(key,parts,schema);
   const {I,ai}=await aiSdk(); let last;
   for(const m of (aiModelName?[aiModelName]:AI_MODELS)){
     try{
-      const model=I.getGenerativeModel(ai,{model:m,generationConfig:{responseMimeType:"application/json",responseSchema:AI_SCHEMA,temperature:0.2}});
+      const model=I.getGenerativeModel(ai,{model:m,generationConfig:{responseMimeType:"application/json",responseSchema:schema||AI_SCHEMA,temperature:0.2}});
       const r=await model.generateContent(parts); aiModelName=m;
       return JSON.parse(r.response.text());
     }catch(e){last=e;const em=String(e&&e.message||e);if(/genai config/i.test(em)||!/\b404\b|model[^:]*(is )?not found|is not supported|unsupported model|invalid model/i.test(em))throw e}
@@ -2026,6 +2188,14 @@ document.addEventListener("click",e=>{
     case "lmTirz":{const el=document.getElementById("party");if(el)el.remove();ui.ct="tirz";go("corpo");break}
     case "lmPeso":{const el=document.getElementById("party");if(el)el.remove();ui.ct="medidas";go("corpo");break}
     case "ct":ui.ct=a.dataset.t;render();break;
+    case "goBio":ui.ct="bio";go("corpo");break;
+    case "bioSave":{const st=ui.bioImp;if(!st||!st.ex)break;const w=bioStore(st.ex,st.ref,st.altura);ui.bioImp=null;render();window.scrollTo(0,0);if(w.length)celebrate("Seu exame mostra evolução! 🎉",w);else toast("Exames salvos");break}
+    case "bioCancel":ui.bioImp=null;render();break;
+    case "bioManual":ui.bioMan={d:todayKey()};render();{const e=$("#bm-d");if(e)e.scrollIntoView({block:"center"})}break;
+    case "bioManCancel":ui.bioMan=null;render();break;
+    case "bioManSave":{const e={d:$("#bm-d").value||todayKey()};let n=0;BIO_F.forEach(([k])=>{const v=num($("#bm-"+k).value);if(v!=null){e[k]=v;n++}});BIO_SEG.forEach(([k])=>{const v=num($("#bm-seg_"+k).value);if(v!=null){e["seg_"+k]=v;n++}});
+      if(!n){toast("Preencha pelo menos um valor");break}ui.bioMan=null;const w=bioStore([e]);render();window.scrollTo(0,0);if(w.length)celebrate("Seu exame mostra evolução! 🎉",w);else toast("Exame salvo");break}
+    case "bioDel":if(a.dataset.confirm){const b=bio();b.ex=b.ex.filter(x=>x.d!==a.dataset.d);persistSettings();render();toast("Exame apagado")}else{a.dataset.confirm="1";a.textContent="Apagar mesmo?"}break;
     case "goTz":ui.ct="tirz";go("corpo");break;
     case "corpoSave":corpoSave();break;
     case "cpEdit":ui.cpd=a.dataset.d;render();{const e=$("#cp-peso");if(e){e.scrollIntoView({block:"center"});e.focus()}}break;
@@ -2074,6 +2244,7 @@ document.addEventListener("change",e=>{
     };
     fr.readAsText(t.files[0]);return;
   }
+  if(t.id==="bio-file"&&t.files&&t.files[0]){bioImport(t.files[0]);t.value="";return}
   if(t.id==="ia-file"&&t.files&&t.files[0]){iaPhoto(t.files[0]);t.value="";return}
   if((t.id==="datePick"||t.id==="datePick2")&&t.value){ui.date=t.value;render();return}
   if(t.dataset.lmon){const l=lembretes().find(x=>x.id===t.dataset.lmon);if(l){l.ativo=t.checked;persistSettings();render();toast(t.checked?"Lembrete ligado":"Lembrete desligado")}return}
