@@ -14,6 +14,9 @@
 </head>
 <body>
 
+<link rel="preconnect" href="https://www.gstatic.com">
+<link rel="preconnect" href="https://firestore.googleapis.com">
+<link rel="preconnect" href="https://generativelanguage.googleapis.com">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&display=swap">
@@ -624,7 +627,9 @@ const fmt1=n=>(Math.round((n||0)*10)/10).toLocaleString("pt-BR");
 const num=v=>{if(v==null)return null;const s=String(v).trim().replace(",",".");if(s==="")return null;const n=parseFloat(s);return isFinite(n)&&n>=0?n:null};
 const uid=()=>(crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)).replace(/[^a-zA-Z0-9-]/g,"");
 const fmtDate=(k,opts)=>parseKey(k).toLocaleDateString("pt-BR",opts||{weekday:"long",day:"numeric",month:"long"});
-const norm=s=>s.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();
+// guarda o texto já normalizado: a busca compara milhares de nomes a cada letra digitada
+const _normC=new Map();
+const norm=s=>{let r=_normC.get(s);if(r===undefined){r=String(s).normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase();if(_normC.size>30000)_normC.clear();_normC.set(s,r)}return r};
 
 /* ---------- pratos preparados ---------- */
 // USDA FoodData Central (SR Legacy), via TempoLife (tempolife.app), CC-BY-4.0. Nomes traduzidos; valores por 100 g.
@@ -860,18 +865,33 @@ function status(v,g){
 let _unit="";
 function fmtDelta(n){return fmt0(n)+_unit}
 function st(v,g,unit){_unit=unit;return status(v,g)}
-function allFoods(){const mine=S.settings.foods.map(f=>Object.assign({},f,{builtin:false})),lr=learnedFoods(mine);
-  const have=new Set(mine.concat(lr).map(f=>norm(f.name).trim()));return mine.concat(lr,sharedFoods.filter(f=>!have.has(f.n)),BASE)}
+let _allF=null,_allSig="";
+function allFoods(){
+  habitFoods();const sig=_habitSig+"|"+S.settings.foods.length+":"+JSON.stringify(S.settings.foods)+"|"+sharedFoods.length;
+  if(_allF&&sig===_allSig)return _allF;
+  const mine=S.settings.foods.map(f=>Object.assign({},f,{builtin:false})),lr=learnedFoods(mine);
+  const have=new Set(mine.concat(lr).map(f=>norm(f.name).trim()));_allSig=sig;return _allF=mine.concat(lr,sharedFoods.filter(f=>!have.has(f.n)),BASE)}
 /* ---------- base compartilhada: tudo que qualquer pessoa logada já pesquisou fica disponível para todos ---------- */
 let sharedFoods=[];
 function hashKey(t){let h=5381,h2=52711;for(let i=0;i<t.length;i++){const c=t.charCodeAt(i);h=((h<<5)+h+c)|0;h2=((h2<<5)+h2^c)|0}return (h>>>0).toString(36)+(h2>>>0).toString(36)}
 function baseCol(){try{return currentUser&&fbReady?firebase.firestore().collection("base"):null}catch(e){return null}}
+const SHARED_LS="contador.base.v1";
+function sharedFromDoc(x){return {id:"S-"+x.n,n:x.n,name:x.nome,kcal:+x.kcal,p:+x.p||0,c:+x.c||0,f:+x.f||0,unit:"g",per:100,portions:x.medida&&x.g?[[x.medida,x.g]]:[],src:"Base",builtin:true,learned:true,shared:true}}
 function loadShared(){
   const c=baseCol();if(!c)return;
-  try{c.where("tipo","==","alimento").limit(2000).get().then(q=>{
-    const builtin=new Set(BASE.map(f=>norm(f.name).trim()));
-    sharedFoods=q.docs.map(d=>d.data()).filter(x=>x&&x.nome&&x.kcal!=null&&x.n&&!builtin.has(x.n)).map(x=>({id:"S-"+x.n,n:x.n,name:x.nome,kcal:+x.kcal,p:+x.p||0,c:+x.c||0,f:+x.f||0,unit:"g",per:100,
-      portions:x.medida&&x.g?[[x.medida,x.g]]:[],src:"Base",builtin:true,learned:true,shared:true}));
+  const builtin=new Set(BASE.map(f=>norm(f.name).trim()));
+  let cache={t:0,d:{}};try{const o=JSON.parse(localStorage.getItem(SHARED_LS)||"null");if(o&&o.d)cache=o}catch(e){}
+  const apply=()=>{sharedFoods=Object.values(cache.d).filter(x=>x&&x.nome&&x.kcal!=null&&x.n&&!builtin.has(x.n)).map(sharedFromDoc)};
+  apply();
+  // primeira vez: baixa a base inteira; depois, só o que foi incluído ou alterado desde a última vez
+  const q=cache.t?c.where("t",">",cache.t).limit(1000):c.where("tipo","==","alimento").limit(2000);
+  const full=()=>c.where("tipo","==","alimento").limit(2000).get();
+  try{q.get().catch(e=>{if(!cache.t)throw e;cache.t=0;return full()}).then(r=>{
+    let changed=false;
+    r.docs.forEach(d=>{const x=d.data();if(!x)return;if(x.t>cache.t)cache.t=x.t;if(x.tipo==="alimento"&&x.n){cache.d[x.n]={nome:x.nome,n:x.n,kcal:x.kcal,p:x.p,c:x.c,f:x.f,medida:x.medida||"",g:x.g||null};changed=true}});
+    if(!cache.t)cache.t=Date.now()-864e5;
+    if(changed)apply();
+    try{localStorage.setItem(SHARED_LS,JSON.stringify(cache))}catch(e){}
   }).catch(()=>{})}catch(e){}
 }
 async function sharedLookup(key){
@@ -1814,23 +1834,52 @@ function aiSdk(){
 const upSchema=o=>Array.isArray(o)?o.map(upSchema):(o&&typeof o==="object"?Object.fromEntries(Object.entries(o).map(([k,v])=>[k,k==="type"?String(v).toUpperCase():upSchema(v)])):o);
 // pensar menos = responder mais rápido; se o modelo não aceitar o ajuste, tenta de novo sem ele
 const noThink=new Set();
-const thinkCfg=m=>/2\.5/.test(m)?{thinkingBudget:/lite/.test(m)?0:512}:{thinkingLevel:"low"};
-async function aiAskKey(key,parts,schema){
-  // tenta o modelo que funcionou por último e, se o Google estiver sobrecarregado (503/500/429), repete e passa para o próximo
-  const order=aiModelName?[aiModelName].concat(AI_MODELS.filter(x=>x!==aiModelName)):AI_MODELS;
+const thinkCfg=m=>/2\.5/.test(m)?{thinkingBudget:/lite/.test(m)?0:256}:{thinkingLevel:"low"};
+// descobre na hora quais modelos a chave pode usar (os nomes mudam com o tempo) e guarda a lista por 1 dia
+let aiAvail=null,aiAvailP=null;
+function aiModelsFor(key){
+  if(aiAvail)return Promise.resolve(aiAvail);
+  try{const c=JSON.parse(localStorage.getItem("contador.aiModels")||"null");if(c&&c.k===key.slice(-6)&&Date.now()-c.t<864e5&&c.m.length){aiAvail=c.m;return Promise.resolve(aiAvail)}}catch(e){}
+  if(!aiAvailP)aiAvailP=(async()=>{
+    const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),6000);
+    try{
+      const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",{headers:{"x-goog-api-key":key},signal:ctl.signal});
+      if(!r.ok)return AI_MODELS;
+      const j=await r.json(),ver=n=>+((/gemini-(\d+(?:\.\d+)?)/.exec(n)||[])[1]||0);
+      const ok=(j.models||[]).filter(x=>(x.supportedGenerationMethods||[]).includes("generateContent")).map(x=>String(x.name||"").replace(/^models\//,""))
+        .filter(n=>/^gemini-[\d.]+-flash(-lite)?(-preview(-\d\d-\d{4})?)?$/.test(n));
+      // mais novo primeiro; versão estável antes de "preview"; "lite" por último (mais rápido, porém menos preciso)
+      ok.sort((a,b)=>(/lite/.test(a)-/lite/.test(b))||(ver(b)-ver(a))||(/preview/.test(a)-/preview/.test(b))||(a.length-b.length));
+      const m=["gemini-flash-latest"].concat(ok.filter(n=>!/lite/.test(n)).slice(0,3),ok.filter(n=>/lite/.test(n)).slice(0,1));
+      aiAvail=m;try{localStorage.setItem("contador.aiModels",JSON.stringify({k:key.slice(-6),t:Date.now(),m}))}catch(e){}
+      return m;
+    }catch(e){return AI_MODELS}finally{clearTimeout(tm);aiAvailP=null}
+  })();
+  return aiAvailP;
+}
+async function aiAskKey(key,parts,schema,opt){
+  opt=opt||{};
+  // cada tentativa tem tempo máximo; se o Google demorar demais ou estiver sobrecarregado (503/500/429), passa para o próximo modelo
+  const list=await aiModelsFor(key),order=aiModelName?[aiModelName].concat(list.filter(x=>x!==aiModelName)):list.slice();
+  const limit=opt.timeout||(parts.some(x=>x.inlineData)?30000:20000),t0=Date.now();
   let last;
   for(const m of order){
     for(let tent=0;tent<2;tent++){
-      let r,j;
-      try{r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent",{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":key},
+      if(Date.now()-t0>75000)throw last||new Error("timeout");
+      let r,j;const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),limit);
+      try{r=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+m+":generateContent",{method:"POST",signal:ctl.signal,headers:{"Content-Type":"application/json","x-goog-api-key":key},
         body:JSON.stringify({contents:[{role:"user",parts}],generationConfig:Object.assign({responseMimeType:"application/json",responseSchema:upSchema(schema||AI_SCHEMA),temperature:0.2},noThink.has(m)?{}:{thinkingConfig:thinkCfg(m)})})});
         j=await r.json().catch(()=>({}));}
-      catch(e){last=e;break}
-      if(r.ok){const t=(((j.candidates||[])[0]||{}).content||{}).parts;aiModelName=m;return JSON.parse((t||[]).map(x=>x.text||"").join(""))}
-      last=new Error("["+r.status+" "+((j.error||{}).status||"")+"] "+((j.error||{}).message||"erro"));
+      catch(e){clearTimeout(tm);last=e&&e.name==="AbortError"?new Error("timeout: o modelo "+m+" demorou mais de "+Math.round(limit/1000)+" s"):e;if(opt.onSlow)opt.onSlow(m);break}
+      clearTimeout(tm);
+      if(r.ok){
+        const c=(j.candidates||[])[0]||{},txt=((c.content||{}).parts||[]).map(x=>x.text||"").join("");
+        try{const o=JSON.parse(txt);aiModelName=m;return o}catch(e){last=new Error("resposta incompleta do modelo "+m+" ("+(c.finishReason||"vazia")+")");break}
+      }
+      last=new Error("["+r.status+" "+((j.error||{}).status||"")+"] "+m+": "+((j.error||{}).message||"erro"));
       if(r.status===400&&!noThink.has(m)&&/thinking/i.test(JSON.stringify(j))){noThink.add(m);tent--;continue}
       if(r.status===404||r.status===429)break;
-      if(r.status>=500){if(tent===0){await new Promise(z=>setTimeout(z,1500));continue}break}
+      if(r.status>=500){if(tent===0){await new Promise(z=>setTimeout(z,1000));continue}break}
       throw last;
     }
   }
@@ -1853,6 +1902,7 @@ function aiErrMsg(e){
   const m=String(e&&e.message||e);
   if(/API key not valid|API_KEY_INVALID/i.test(m)&&(S.settings.aiKey||""))return "A chave do Gemini salva no app não é válida. Confira se copiou a chave inteira.";
   if(/genai config|api.?not.?enabled|has not been used|is disabled|SERVICE_DISABLED|firebasevertexai|PERMISSION_DENIED|403|API key not valid|billing/i.test(m))return "setup";
+  if(/^timeout/i.test(m))return "A IA do Google está demorando demais para responder agora. Toque em Buscar de novo em instantes.";
   if(/Failed to fetch|NetworkError|network|import|dynamically imported/i.test(m))return "Sem conexão com a internet agora. Tente de novo em instantes.";
   if(/\b50[0-9]\b|UNAVAILABLE|high demand|overloaded/i.test(m))return "A IA do Google está sobrecarregada agora. Espere um minutinho e toque em Calcular de novo.";
   if(/quota|429|RESOURCE_EXHAUSTED/i.test(m))return "O limite gratuito de uso da IA acabou por hoje. Tente amanhã ou use a aba Buscar.";
@@ -1914,9 +1964,9 @@ function drawSug(){
 }
 function drawIaOut(){
   const el=$("#ia-out");if(!el)return;const ia=sh.ia;let h="";
-  if(ia.loading)h+=`<div class="ia-load" role="status" aria-live="polite"><div class="plate"><span class="emo" id="ia-emo">${LOAD_EMO[0]}</span></div><div class="msg" id="ia-msg">${LOAD_MSG[0]}</div><div class="bar"><b></b></div><p class="tip" id="ia-tip">💡 ${esc(LOAD_TIPS[Math.floor(Math.random()*LOAD_TIPS.length)])}</p></div>`;
+  if(ia.loading)h+=`<div class="ia-load" role="status" aria-live="polite"><div class="plate"><span class="emo" id="ia-emo">${LOAD_EMO[0]}</span></div><div class="msg" id="ia-msg">${ia.img?"Olhando a foto do seu prato…":LOAD_MSG[0]}</div><div class="bar"><b></b></div><p class="tip" id="ia-tip">💡 ${esc(LOAD_TIPS[Math.floor(Math.random()*LOAD_TIPS.length)])}</p></div>`;
   else stopLoadAnim();
-  if(ia.err&&!ia.loading)h+=`<div class="ia-err">${esc(ia.err==="setup"?"Não consegui calcular agora. Escolha um alimento abaixo ou tente de novo em instantes.":ia.err)}</div>`;
+  if(ia.err&&!ia.loading)h+=`<div class="ia-err">${esc(ia.err==="setup"?"Não consegui calcular agora. Escolha um alimento abaixo ou tente de novo em instantes.":ia.err)}${ia.errRaw?`<details style="margin-top:6px;font-size:12px;opacity:.75"><summary>Detalhe do erro</summary>${esc(ia.errRaw)}</details>`:""}</div>`;
   const res=ia.res||[];
   if(res.length){
     const tot={kcal:0,p:0,c:0,f:0};
@@ -1938,24 +1988,44 @@ async function iaRun(){
   const kt=ia.text.trim();
   if(/^(AQ\.|AIza)[\w.-]{20,}$/.test(kt)){S.settings.aiKey=kt;aiModelName=null;persistSettings();publishAppKey(kt);ia.text="";drawSheet();toast("Configuração salva! Agora escreva o que você comeu.");return}
   if(!kt&&!ia.img){if(t){t.focus();t.style.borderColor="var(--over)"}return}
-  ia.err=null;ia.note="";let ask=kt;
+  ia.err=null;ia.errRaw="";ia.note="";let ask=kt;
   if(!ia.img){const loc=iaLocal(kt);if(loc.items.length)addPlate(loc.items);ask=loc.rest.trim();if(loc.note)ia.note=loc.note;
     if(!ask){ia.text="";drawSheet();return}}
   const me=sh;ia.loading=true;ia.text=ask;drawSheet();
   const qk=norm(ask).replace(/\s+/g," ").trim();
   if(!ia.img&&qk){const x=await sharedLookup(qk);if(x){addPlate(x.itens.map(r=>Object.assign(iaItem(r),{fast:true})));ia.note=x.note||"";ia.loading=false;ia.text="";iaRemember(ask,{itens:x.itens,observacao:x.note});if(sh===me&&sh.tab==="ia")drawSheet();return}}
   const parts=[{text:AI_PROMPT+"\n\nRefeição: "+MEAL_NAME[sh.meal]+"\nDescrição da pessoa: "+(ask||"(sem descrição, use a foto)")}];
-  if(ia.img)parts.push({inlineData:{mimeType:"image/jpeg",data:ia.img.split(",")[1]}});
+  if(ia.img){const mm=/^data:([^;,]+)/.exec(ia.img);parts.push({inlineData:{mimeType:(mm&&mm[1])||"image/jpeg",data:ia.img.split(",")[1]}})}
   try{const r=await aiAsk(parts);const its=(r.itens||[]).map(iaItem);addPlate(its);ia.note=r.observacao||"";
     if(its.length){ia.text="";if(!ia.img){iaRemember(ask,r);sharedSaveQuery(qk,r)}}else ia.note=r.observacao||"Não encontrei alimentos. Descreva com mais detalhes ou escolha abaixo."}
   catch(e){console.warn(e);ia.err=aiErrMsg(e);ia.errRaw=String(e&&(e.message||e)).slice(0,400)}
   ia.loading=false;if(sh===me&&sh.tab==="ia")drawSheet();
 }
-function iaPhoto(file){
-  const fr=new FileReader();
-  fr.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,800/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext("2d").drawImage(im,0,0,c.width,c.height);
-    if(!sh||!sh.ia)return;sh.ia.img=c.toDataURL("image/jpeg",0.82);sh.ia.err=null;drawSheet()};im.onerror=()=>toast("Não consegui abrir essa imagem");im.src=fr.result};
-  fr.readAsDataURL(file);
+// reduz a foto para 768 px (o tamanho que a IA usa) antes de enviar: fica ~10x menor e sobe muito mais rápido
+async function shrinkPhoto(file,max){
+  max=max||768;let src,w,h,close=()=>{};
+  try{src=await createImageBitmap(file,{imageOrientation:"from-image"});w=src.width;h=src.height;close=()=>src.close&&src.close()}
+  catch(e){const url=URL.createObjectURL(file);try{src=await new Promise((ok,no)=>{const im=new Image();im.onload=()=>ok(im);im.onerror=no;im.src=url});w=src.naturalWidth;h=src.naturalHeight}finally{setTimeout(()=>URL.revokeObjectURL(url),0)}}
+  const k=Math.min(1,max/Math.max(w,h)),c=document.createElement("canvas");c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+  c.getContext("2d").drawImage(src,0,0,c.width,c.height);close();
+  return c.toDataURL("image/jpeg",0.8);
+}
+async function iaPhoto(file){
+  if(!sh||!sh.ia)return;const me=sh;
+  let img=null;
+  try{img=await shrinkPhoto(file)}
+  catch(e){
+    // formatos que o navegador não abre (ex.: HEIC do iPhone no computador): manda o arquivo original, se não for enorme
+    if(file.size<7e6&&/heic|heif|webp|png|jpe?g/i.test(file.type||file.name||"")){
+      img=await new Promise(ok=>{const fr=new FileReader();fr.onload=()=>ok(fr.result);fr.onerror=()=>ok(null);fr.readAsDataURL(file)});
+      if(img&&!/^data:image\//.test(img))img=img.replace(/^data:[^;]*;/,"data:"+(/heif?$/i.test(file.name||"")?"image/heic":"image/jpeg")+";");
+    }
+  }
+  if(sh!==me||!sh.ia)return;
+  if(!img){toast("Não consegui abrir essa imagem. Tente tirar a foto de novo.");return}
+  const t=$("#ia-text");if(t)sh.ia.text=t.value;
+  sh.ia.img=img;sh.ia.err=null;sh.ia.errRaw="";drawSheet();
+  if(!sh.ia.loading)iaRun();
 }
 function iaSave(){
   const its=(sh.ia.res||[]).filter(x=>num(x.g));if(!its.length)return;
@@ -2210,11 +2280,13 @@ document.addEventListener("click",e=>{
     case "shDelete":{const id=sh.editId;closeSheet();removeItem(id);break}
   }
 });
+const _soon={};
+function soon(k,fn){if(_soon[k])return;_soon[k]=setTimeout(()=>{_soon[k]=0;if(sh)fn()},60)}
 document.addEventListener("input",e=>{
   const t=e.target;
-  if(t.id==="sh-q"){sh.q=t.value;drawResults()}
+  if(t.id==="sh-q"){sh.q=t.value;soon("res",drawResults)}
   else if(t.id==="sh-qty"){sh.qty=t.value;t.style.borderColor="";drawPreview()}
-  else if(t.id==="ia-text"){sh.ia.text=t.value;t.style.borderColor="";drawSug()}
+  else if(t.id==="ia-text"){sh.ia.text=t.value;t.style.borderColor="";soon("sug",drawSug)}
   else if(t.dataset&&t.dataset.iag!=null){sh.ia.res[+t.dataset.iag].g=t.value;iaUpdateRow(+t.dataset.iag)}
   else if(t.dataset&&t.dataset.iaon!=null){sh.ia.res[+t.dataset.iaon].on=t.checked;drawIaOut()}
   else if(t.id==="pr-q"){sh.prep.q=t.value;drawFoodList("#pr-results",t.value,"prPick",f=>f.unit==="g",true)}
